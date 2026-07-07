@@ -1,0 +1,8 @@
+{
+  "apiPort": 5000,
+  "server": "localhost\\SQLEXPRESS",
+  "database": "IAPPowerBI",
+  "authType": "windows",
+  "username": "",
+  "password": ""
+}

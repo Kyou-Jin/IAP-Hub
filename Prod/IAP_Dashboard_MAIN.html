@@ -1,0 +1,1857 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Asklepios IT Infrastruktur – Projektübersicht</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Segoe UI, Arial, sans-serif; background: #1a1a2e; color: #e0e0e0; margin: 0; padding: 0; min-height: 100vh; }
+
+  /* ── Top-Header ── */
+  .top-bar {
+    background: #111827;
+    border-bottom: 1px solid #1f3460;
+    padding: 0.7rem 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .top-bar .title { font-size: 1.05rem; font-weight: 700; color: #a0c4ff; }
+  .top-bar .sub   { font-size: 0.76rem; color: #6b7280; }
+
+  /* ── Ebene 1 – Haupt-Reiter ── */
+  .nav-l1 {
+    background: #111827;
+    border-bottom: 2px solid #1f3460;
+    display: flex;
+    padding: 0 2rem;
+  }
+  .nav-l1 .tab {
+    padding: 0.65rem 1.4rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #6b7280;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    transition: color 0.15s;
+  }
+  .nav-l1 .tab:hover { color: #a0c4ff; }
+  .nav-l1 .tab.active { color: #60a5fa; border-bottom-color: #2563eb; }
+
+  /* ── Ebene 2 – Sub-Reiter ── */
+  .nav-l2 {
+    background: #16213e;
+    border-bottom: 1px solid #1f2937;
+    display: flex;
+    padding: 0 2rem;
+    overflow-x: auto;
+  }
+  .nav-l2 .tab {
+    padding: 0.5rem 1.1rem;
+    font-size: 0.8rem;
+    color: #9ca3af;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    white-space: nowrap;
+    transition: color 0.15s;
+  }
+  .nav-l2 .tab:hover { color: #d1d5db; }
+  .nav-l2 .tab.active { color: #60a5fa; border-bottom-color: #3b82f6; font-weight: 600; }
+
+  /* ── Content-Bereiche ── */
+  .content { padding: 1.75rem 2rem; }
+  .view    { display: none; }
+  .view.active { display: block; }
+
+  /* ── Projekt-Karten ── */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; margin-bottom: 1.25rem; }
+  .proj-card {
+    background: #16213e;
+    border: 1px solid #1f3460;
+    border-radius: 10px;
+    padding: 1.1rem;
+  }
+  .proj-card-head { display: flex; align-items: center; gap: 9px; margin-bottom: 0.75rem; }
+  .proj-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    font-size: 1rem;
+  }
+  .proj-title { font-size: 0.85rem; font-weight: 700; color: #a0c4ff; }
+  .proj-sub   { font-size: 0.72rem; color: #6b7280; }
+  .proj-body  { border-top: 1px solid #1f2937; padding-top: 0.65rem; }
+  .proj-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 5px 0; border-bottom: 1px solid #1f2937; text-decoration: none;
+  }
+  .proj-row:last-child { border-bottom: none; }
+  .proj-row:hover .chg-nr { text-decoration: underline; }
+  .chg-nr  { font-size: 0.79rem; font-weight: 700; color: #60a5fa; }
+  .chg-sub { font-size: 0.71rem; color: #9ca3af; margin-left: 6px; }
+  .proj-empty { font-size: 0.76rem; color: #6b7280; font-style: italic; padding: 0.5rem 0; }
+  .proj-meta-row { display: flex; justify-content: space-between; font-size: 0.75rem; padding: 4px 0; border-bottom: 1px solid #1f2937; }
+  .proj-meta-row:last-child { border-bottom: none; }
+  .proj-btn {
+    margin-top: 0.85rem; padding: 0.45rem 0.75rem;
+    border: 1px solid #1f3460; border-radius: 6px;
+    font-size: 0.75rem; color: #60a5fa; text-align: center;
+    cursor: pointer; text-decoration: none; display: block;
+  }
+  .proj-btn:hover { background: #1e3a5f; }
+  .proj-btn.dim { border-color: #1f2937; color: #6b7280; }
+  .proj-btn.dim:hover { background: #111827; }
+
+  /* ── Ampel-Badges ── */
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.71rem; font-weight: 700; white-space: nowrap; }
+  .badge-red    { background: #450a0a; color: #f87171; border: 1px solid #7f1d1d; }
+  .badge-yellow { background: #451a03; color: #fbbf24; border: 1px solid #78350f; }
+  .badge-green  { background: #052e16; color: #4ade80; border: 1px solid #14532d; }
+  .badge-gray   { background: #1f2937; color: #9ca3af; border: 1px solid #374151; }
+
+  /* ── KPI-Zeile ── */
+  .kpi-row { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+  .kpi {
+    background: #111827; border: 1px solid #1f2937; border-radius: 8px;
+    padding: 0.85rem 1.2rem; min-width: 120px; flex: 1;
+  }
+  .kpi-label { font-size: 0.7rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
+  .kpi-value { font-size: 1.45rem; font-weight: 700; color: #e0e0e0; line-height: 1.2; margin: 0.1rem 0; }
+  .kpi-sub   { font-size: 0.72rem; color: #9ca3af; }
+
+  /* ── Dashboard-Wrapper ── */
+  .dash-card { background: #16213e; border: 1px solid #1f3460; border-radius: 10px; padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; }
+  .dash-card-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; margin: 0 0 1rem 0; }
+
+  /* ── Dash-Tabs (Usecase-Reiter) ── */
+  .dash-tabs { display: flex; gap: 0; border-bottom: 1px solid #1f2937; margin-bottom: 1.25rem; overflow-x: auto; }
+  .dash-tab {
+    padding: 0.55rem 1.1rem; font-size: 0.8rem; color: #6b7280;
+    cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;
+    white-space: nowrap; transition: color 0.15s;
+  }
+  .dash-tab:hover { color: #d1d5db; }
+  .dash-tab.active { color: #60a5fa; border-bottom-color: #3b82f6; font-weight: 600; }
+  .dash-view { display: none; }
+  .dash-view.active { display: block; }
+
+  /* ── Gantt ── */
+  .gantt-wrap { background: #111827; border-radius: 8px; padding: 1rem 1rem 0.75rem; overflow-x: auto; }
+  .ruler { position: relative; height: 22px; margin-bottom: 0.4rem; }
+  .ruler-month {
+    position: absolute; font-size: 0.67rem; color: #4b5563;
+    border-left: 1px solid #1f2937; padding-left: 3px; top: 0; height: 100%;
+  }
+  .g-row { display: flex; align-items: center; margin-bottom: 0.65rem; position: relative; }
+  .g-lbl { width: 240px; min-width: 240px; padding-right: 0.75rem; }
+  .g-lbl a { color: #60a5fa; font-size: 0.83rem; font-weight: 700; text-decoration: none; }
+  .g-lbl a:hover { text-decoration: underline; }
+  .g-lbl .s { font-size: 0.7rem; color: #9ca3af; margin-top: 0.1rem; }
+  .g-track { flex: 1; position: relative; height: 34px; }
+
+  /* ── Gantt: geteiltes Layout (fixe Labels links, scrollbarer Zeitstrahl rechts) ── */
+  .gantt-split { display: flex; align-items: flex-start; background: #111827; border-radius: 8px; padding: 1rem 1rem 0.75rem; }
+  /* padding-top gleicht die Topscroll-Leiste (12px + 4px Abstand) rechts aus, damit die
+     erste Label-Zeile exakt auf Hoehe der ersten Zeitstrahl-Zeile beginnt. */
+  .gantt-labels-col { width: 240px; min-width: 240px; padding-right: 0.75rem; padding-top: 16px; }
+  .gantt-label-row { height: 28px; margin-bottom: 0.25rem; display: flex; align-items: center; overflow: hidden; }
+  .gantt-label-row .gl-inner { overflow: hidden; width: 100%; line-height: 1.15; }
+  .gantt-label-row .gl-id { display: flex; align-items: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .gantt-label-row .gl-id span:last-child { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .gantt-label-row .s { font-size: 0.62rem; color: #9ca3af; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .gantt-time-col { flex: 1; min-width: 0; }
+  .gantt-topscroll, .gantt-time-scroll { overflow-x: auto; overflow-y: hidden; }
+  .gantt-topscroll { height: 12px; margin-bottom: 4px; }
+  .gantt-topscroll-inner { height: 1px; }
+  .gantt-topscroll::-webkit-scrollbar, .gantt-time-scroll::-webkit-scrollbar { height: 8px; }
+  .gantt-topscroll::-webkit-scrollbar-thumb, .gantt-time-scroll::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 4px; }
+  .gantt-topscroll::-webkit-scrollbar-track, .gantt-time-scroll::-webkit-scrollbar-track { background: transparent; }
+  .g-track-row { position: relative; height: 28px; margin-bottom: 0.25rem; }
+
+  /* ── Sortier-Auswahl (UC1) ── */
+  .ts-select {
+    background: #111827; border: 1px solid #1f2937; color: #d1d5db;
+    font-size: 0.76rem; padding: 0.3rem 0.5rem; border-radius: 6px; cursor: pointer; font-family: inherit;
+  }
+  .ts-select:hover { background: #1e2a4a; }
+
+  /* ── Filter-Checkboxen (UC1: Patchdays / Kunden- / Interne Changes) ── */
+  .gantt-filter-check { display: flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; color: #9ca3af; cursor: pointer; user-select: none; white-space: nowrap; }
+  .gantt-filter-check:hover { color: #d1d5db; }
+  .gantt-filter-check input[type="checkbox"] { width: 15px; height: 15px; cursor: pointer; accent-color: #2563eb; }
+  .g-bg { position: absolute; inset: 0; background: #0d1117; border-radius: 4px; }
+  .g-gl { position: absolute; top: 0; bottom: 0; width: 1px; background: #1f2937; }
+  .g-bar {
+    position: absolute; top: 50%; transform: translateY(-50%); height: 20px; border-radius: 4px;
+    display: flex; align-items: center; padding: 0 6px; overflow: hidden;
+  }
+  .g-bar span { font-size: 0.62rem; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; position: relative; z-index: 1; }
+  .g-fill { position: absolute; top: 0; left: 0; bottom: 0; border-radius: 4px; opacity: 0.38; }
+  .g-today { position: absolute; top: -5px; bottom: -5px; width: 2px; background: #f59e0b; z-index: 8; pointer-events: none; }
+  .g-today-lbl { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: 0.62rem; color: #f59e0b; white-space: nowrap; }
+  .g-golive { position: absolute; top: -3px; bottom: -3px; width: 2px; background: #f87171; z-index: 7; }
+  .g-golive-lbl { position: absolute; top: -17px; left: 50%; transform: translateX(-50%); font-size: 0.6rem; color: #f87171; white-space: nowrap; }
+  .g-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+  .dot-red    { background: #ef4444; box-shadow: 0 0 4px #ef4444; }
+  .dot-yellow { background: #f59e0b; box-shadow: 0 0 4px #f59e0b; }
+  .dot-green  { background: #22c55e; box-shadow: 0 0 4px #22c55e; }
+  .g-legend { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1rem; font-size: 0.75rem; color: #9ca3af; border-top: 1px solid #1f2937; padding-top: 0.75rem; }
+  .g-legend-item { display: flex; align-items: center; gap: 5px; }
+
+  /* ── Summary Cards ── */
+  .summary-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem; }
+  .sum-card { background: #111827; border: 1px solid #1f2937; border-radius: 8px; padding: 1rem 1.2rem; }
+  .sum-card a { color: #60a5fa; font-weight: 700; font-size: 0.88rem; text-decoration: none; }
+  .sum-card a:hover { text-decoration: underline; }
+  .sum-meta { font-size: 0.74rem; color: #9ca3af; margin-top: 0.2rem; }
+  .sum-stats { font-size: 0.77rem; color: #d1d5db; margin-top: 0.4rem; line-height: 1.6; }
+  .mini-bar { height: 6px; background: #1f2937; border-radius: 3px; overflow: hidden; margin-top: 3px; }
+  .mini-fill { height: 100%; border-radius: 3px; }
+
+  /* ── Chart-Kacheln ── */
+  .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+  .chart-card { background: #16213e; border: 1px solid #1f3460; border-radius: 10px; padding: 1.1rem 1.3rem; }
+  .chart-title { font-size: 0.71rem; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; margin: 0 0 0.85rem; }
+  .chart-wrap { position: relative; width: 100%; height: 250px; }
+  .chart-wrap canvas { position: absolute; inset: 0; }
+  .c-legend { display: flex; flex-wrap: wrap; gap: 0.65rem; margin-top: 0.65rem; font-size: 0.73rem; color: #9ca3af; }
+  .c-leg-item { display: flex; align-items: center; gap: 4px; }
+  .c-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ── Dashboard-Link-Kacheln ── */
+  .dash-link-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .dash-link {
+    flex: 1; min-width: 200px; padding: 0.65rem 1rem;
+    background: #111827; border: 1px solid #1f3460; border-radius: 8px;
+    font-size: 0.8rem; color: #60a5fa; text-decoration: none;
+    display: flex; align-items: center; gap: 10px;
+    transition: background 0.15s;
+  }
+  .dash-link:hover { background: #1e3a5f; }
+  .dash-link .icon { font-size: 1.1rem; }
+  .dash-link .lbl { font-weight: 600; }
+  .dash-link .hint { font-size: 0.69rem; color: #6b7280; }
+  .dash-link .arr { margin-left: auto; color: #4b5563; }
+
+  /* ── Mini-Table ── */
+  .mini-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-top: 0.5rem; }
+  .mini-table th { background: #111827; color: #6b7280; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid #1f2937; }
+  .mini-table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid #1f2937; color: #d1d5db; }
+  .mini-table tr:hover td { background: #1e2a4a; }
+  .table-scroll { width: 100%; overflow-x: auto; }
+  .pbar { height: 5px; background: #1f2937; border-radius: 3px; overflow: hidden; margin-top: 3px; }
+  .pbar-fill { height: 100%; border-radius: 3px; }
+
+  /* ── Chart-Container (responsive) ── */
+  .chart-container { position: relative; width: 100%; height: 280px; }
+  .chart-container-lg { position: relative; width: 100%; height: 320px; }
+
+  /* ── DB-Verbindung (Top-Bar) ── */
+  .top-bar { justify-content: space-between; }
+  .conn-area { display: flex; align-items: center; gap: 0.6rem; }
+  .conn-dot { width: 9px; height: 9px; border-radius: 50%; background: #6b7280; box-shadow: 0 0 4px #6b7280; flex-shrink: 0; }
+  .conn-dot.ok  { background: #22c55e; box-shadow: 0 0 5px #22c55e; }
+  .conn-dot.err { background: #ef4444; box-shadow: 0 0 5px #ef4444; }
+  .conn-label { font-size: 0.72rem; color: #9ca3af; white-space: nowrap; }
+  .conn-btn {
+    background: #111827; border: 1px solid #1f3460; color: #60a5fa;
+    font-size: 0.78rem; padding: 0.4rem 0.85rem; border-radius: 6px; cursor: pointer;
+    font-family: inherit; white-space: nowrap;
+  }
+  .conn-btn:hover { background: #1e3a5f; }
+
+  /* ── Verbindungs-Modal ── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+    display: none; align-items: center; justify-content: center; z-index: 1000;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal { background: #16213e; border: 1px solid #1f3460; border-radius: 10px; width: 420px; max-width: 92vw; }
+  .modal-head { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.25rem; border-bottom: 1px solid #1f2937; }
+  .modal-title { font-size: 0.95rem; font-weight: 700; color: #a0c4ff; }
+  .modal-close { cursor: pointer; color: #6b7280; font-size: 1rem; line-height: 1; }
+  .modal-close:hover { color: #e0e0e0; }
+  .modal-body { padding: 1rem 1.25rem; display: flex; flex-direction: column; gap: 0.35rem; max-height: 60vh; overflow-y: auto; }
+  .modal-body label { font-size: 0.7rem; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.6rem; }
+  .modal-body label .hint { text-transform: none; color: #4b5563; letter-spacing: normal; }
+  .modal-body input, .modal-body select {
+    background: #111827; border: 1px solid #1f2937; color: #e0e0e0; border-radius: 6px;
+    padding: 0.5rem 0.65rem; font-size: 0.85rem; font-family: inherit;
+  }
+  .modal-body input:focus, .modal-body select:focus { outline: none; border-color: #2563eb; }
+  .modal-status { font-size: 0.78rem; margin-top: 0.6rem; min-height: 1.1rem; }
+  .modal-status.ok  { color: #4ade80; }
+  .modal-status.err { color: #f87171; }
+  .modal-actions { display: flex; gap: 0.6rem; justify-content: flex-end; padding: 1rem 1.25rem; border-top: 1px solid #1f2937; }
+  .modal-btn { padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.8rem; cursor: pointer; border: 1px solid #1f3460; font-family: inherit; }
+  .modal-btn.primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+  .modal-btn.primary:hover { background: #1d4ed8; }
+  .modal-btn.secondary { background: #111827; color: #9ca3af; }
+  .modal-btn.secondary:hover { background: #1e2a4a; }
+
+  /* ── Gantt Timescale-Auswahl (UC1) ── */
+  .timescale-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
+  .timescale-label { font-size: 0.74rem; color: #9ca3af; margin-right: 0.25rem; }
+  .ts-btn {
+    background: #111827; border: 1px solid #1f2937; color: #9ca3af;
+    font-size: 0.76rem; padding: 0.3rem 0.75rem; border-radius: 6px; cursor: pointer; font-family: inherit;
+  }
+  .ts-btn:hover { background: #1e2a4a; color: #d1d5db; }
+  .ts-btn.active { background: #1e3a5f; border-color: #2563eb; color: #60a5fa; font-weight: 600; }
+
+  /* ── Horizontal scrollbarer Chart-Bereich (UC4) ── */
+  .chart-scroll-x { overflow-x: auto; overflow-y: hidden; }
+  .chart-scroll-x::-webkit-scrollbar { height: 8px; }
+  .chart-scroll-x::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 4px; }
+  .chart-scroll-x::-webkit-scrollbar-track { background: transparent; }
+
+  /* ── Hinweisbox (fehlende Daten etc.) ── */
+  .note-box {
+    margin-top: 0.85rem; padding: 0.6rem 0.85rem; background: #241a0a; border: 1px dashed #78350f;
+    border-radius: 6px; font-size: 0.76rem; color: #fbbf24; line-height: 1.5;
+  }
+
+  /* ── Responsive Breakpoints ── */
+  @media (max-width: 900px) {
+    .content { padding: 1rem; }
+    .top-bar { padding: 0.7rem 1rem; }
+    .nav-l1, .nav-l2 { padding: 0 0.75rem; }
+    .summary-row { grid-template-columns: 1fr; }
+    .chart-grid  { grid-template-columns: 1fr; }
+    .kpi-row .kpi { min-width: calc(50% - 0.5rem); }
+    .g-lbl { width: 160px; min-width: 160px; }
+    .ruler { margin-left: 160px; }
+    .team-header { padding-left: 160px; }
+  }
+  @media (max-width: 600px) {
+    .top-bar .title { font-size: 0.92rem; }
+    .kpi-row .kpi { min-width: 100%; }
+    .card-grid { grid-template-columns: 1fr; }
+    .g-lbl { width: 110px; min-width: 110px; font-size: 0.7rem; }
+    .ruler { margin-left: 110px; }
+    .g-lbl .s { display: none; }
+    .mini-table { font-size: 0.75rem; }
+    .mini-table th, .mini-table td { padding: 0.4rem 0.5rem; }
+    .chart-container, .chart-container-lg { height: 220px; }
+    .dash-card { padding: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- TOP-HEADER                                         -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="top-bar">
+  <div>
+    <div class="title">Asklepios IT Infrastruktur – Projektübersicht</div>
+    <div class="sub">Stand: <span id="dash-stand-datum">24.06.2026</span> &nbsp;·&nbsp; Quelle: Servity ITSM</div>
+  </div>
+  <div class="conn-area">
+    <span class="conn-dot" id="conn-dot" title="Verbindungsstatus"></span>
+    <span class="conn-label" id="conn-label">Nicht verbunden (Demo-Daten)</span>
+    <button class="conn-btn" onclick="openConnModal()">🔌 Verbindung</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- DB-VERBINDUNGS-MODAL                                -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="conn-modal-overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Datenbankverbindung</div>
+      <div class="modal-close" onclick="closeConnModal()">✕</div>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:0.74rem;color:#6b7280;line-height:1.5">
+        Der Browser verbindet sich nicht direkt mit SQL Server – dazu läuft lokal
+        ein kleiner Bridge-Dienst (iap_dashboard_api.py), der die Daten abruft.
+      </div>
+
+      <label>API-Basis-URL <span class="hint">(Bridge-Dienst)</span></label>
+      <input type="text" id="cf-api" placeholder="http://localhost:5000">
+
+      <label>Server</label>
+      <input type="text" id="cf-server" placeholder="localhost\SQLEXPRESS">
+
+      <label>Datenbank</label>
+      <input type="text" id="cf-database" placeholder="IAPPowerBI">
+
+      <label>Authentifizierung</label>
+      <select id="cf-auth" onchange="toggleAuthFields()">
+        <option value="windows">Windows-Authentifizierung</option>
+        <option value="sql">SQL Server Login</option>
+      </select>
+
+      <div id="cf-sql-fields" style="display:none">
+        <label>Benutzername</label>
+        <input type="text" id="cf-username" placeholder="Benutzername">
+        <label>Passwort</label>
+        <input type="password" id="cf-password" placeholder="Passwort">
+      </div>
+
+      <div class="modal-status" id="cf-status"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn secondary" onclick="testConnection()">Verbindung testen</button>
+      <button class="modal-btn primary" onclick="saveConnection()">Speichern</button>
+      <button class="modal-btn secondary" onclick="closeConnModal()">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- EBENE 1 – HAUPT-REITER                            -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="nav-l1">
+  <div class="tab active" onclick="switchL1('projekte', this)">Projekte</div>
+  <div class="tab"        onclick="switchL1('dashboards', this)">Dashboards</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- EBENE 2a – PROJEKTE SUB-REITER                    -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="nav-l2" id="subnav-projekte">
+  <div class="tab active" onclick="switchL2('p-alle', this, 'projekte')">Alle Projekte</div>
+  <div class="tab"        onclick="switchL2('p-lcm',  this, 'projekte')">Life Cycle Management</div>
+  <div class="tab"        onclick="switchL2('p-mvz',  this, 'projekte')">MVZ</div>
+  <div class="tab"        onclick="switchL2('p-sonst',this, 'projekte')">Sonstige Projekte</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- EBENE 2b – DASHBOARDS SUB-REITER                  -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="nav-l2" id="subnav-dashboards" style="display:none">
+  <div class="tab active" onclick="switchL2('d-uc1', this, 'dashboards')">Gantt</div>
+  <div class="tab"        onclick="switchL2('d-uc2', this, 'dashboards')">Aufgaben-Verteilung</div>
+  <div class="tab"        onclick="switchL2('d-uc3', this, 'dashboards')">Abschluss-Quote</div>
+  <div class="tab"        onclick="switchL2('d-uc4', this, 'dashboards')">Historie</div>
+  <div class="tab"        onclick="switchL2('d-uc0', this, 'dashboards')">Gantt – Details (under construction)</div>
+  <div class="tab" style="display:none" onclick="switchL2('d-uc41', this, 'dashboards')">Usecase 4.1 – Zeitverlauf Detail</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- CONTENT                                           -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="content">
+
+<!-- ─── PROJEKTE: Alle ───────────────────────────── -->
+<div class="view active" id="p-alle">
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-label">Aktive Changes</div><div class="kpi-value">2</div><div class="kpi-sub">MVZ Projekte</div></div>
+    <div class="kpi"><div class="kpi-label">Offene Tasks</div><div class="kpi-value" style="color:#fbbf24">13</div><div class="kpi-sub">Handlungsbedarf</div></div>
+    <div class="kpi"><div class="kpi-label">Nächster GoLive</div><div class="kpi-value" style="color:#f87171;font-size:1.1rem">07.07.2026</div><div class="kpi-sub">CHG-20017717 · 13 Tage</div></div>
+    <div class="kpi"><div class="kpi-label">Kritische Changes</div><div class="kpi-value" style="color:#ef4444">1</div><div class="kpi-sub">Ampel Rot</div></div>
+    <div class="kpi"><div class="kpi-label">Tasks gesamt</div><div class="kpi-value">32</div><div class="kpi-sub">alle Projekte</div></div>
+  </div>
+  <div class="card-grid">
+    <!-- LCM -->
+    <div class="proj-card">
+      <div class="proj-card-head">
+        <div class="proj-icon" style="background:#1e3a5f">🔄</div>
+        <div><div class="proj-title">Life Cycle Management</div><div class="proj-sub">Hardware &amp; Software</div></div>
+      </div>
+      <div class="proj-body">
+        <div class="proj-empty">Noch keine Changes verknüpft</div>
+        <div class="proj-meta-row"><span style="color:#9ca3af">Aktive Changes</span><span style="color:#4b5563">–</span></div>
+        <div class="proj-meta-row" style="border:none"><span style="color:#9ca3af">Nächste Deadline</span><span style="color:#4b5563">–</span></div>
+      </div>
+      <div class="proj-btn dim">Einrichten ↗</div>
+    </div>
+    <!-- MVZ -->
+    <div class="proj-card">
+      <div class="proj-card-head">
+        <div class="proj-icon" style="background:#1e3a2f">🏥</div>
+        <div><div class="proj-title">MVZ</div><div class="proj-sub">2 aktive Changes</div></div>
+      </div>
+      <div class="proj-body">
+        <a class="proj-row" href="chg-20009959-tasks.html">
+          <div><span class="chg-nr">CHG-20009959</span><span class="chg-sub">Annweiler</span></div>
+          <span class="badge badge-yellow">⚠ Gelb</span>
+        </a>
+        <a class="proj-row" href="chg-20017717-tasks.html" style="border-bottom:none">
+          <div><span class="chg-nr">CHG-20017717</span><span class="chg-sub">Radeberg</span></div>
+          <span class="badge badge-red">⛔ Rot</span>
+        </a>
+      </div>
+    </div>
+    <!-- Sonstige -->
+    <div class="proj-card">
+      <div class="proj-card-head">
+        <div class="proj-icon" style="background:#1f2937">📁</div>
+        <div><div class="proj-title">Sonstige Projekte</div><div class="proj-sub">Weitere Vorhaben</div></div>
+      </div>
+      <div class="proj-body">
+        <div class="proj-empty">Noch keine Projekte verknüpft</div>
+        <div class="proj-meta-row"><span style="color:#9ca3af">Aktive Projekte</span><span style="color:#4b5563">–</span></div>
+        <div class="proj-meta-row" style="border:none"><span style="color:#9ca3af">Nächste Deadline</span><span style="color:#4b5563">–</span></div>
+      </div>
+      <div class="proj-btn dim">Einrichten ↗</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── PROJEKTE: LCM ────────────────────────────── -->
+<div class="view" id="p-lcm">
+  <div class="proj-card" style="max-width:480px">
+    <div class="proj-card-head">
+      <div class="proj-icon" style="background:#1e3a5f">🔄</div>
+      <div><div class="proj-title">Life Cycle Management</div><div class="proj-sub">Hardware &amp; Software</div></div>
+    </div>
+    <div class="proj-body">
+      <div class="proj-empty">Noch keine Changes verknüpft. Bitte Servity-Export hochladen.</div>
+    </div>
+    <div class="proj-btn dim">Einrichten ↗</div>
+  </div>
+</div>
+
+<!-- ─── PROJEKTE: MVZ ────────────────────────────── -->
+<div class="view" id="p-mvz">
+  <div class="summary-row">
+    <div class="sum-card">
+      <div><a href="chg-20009959-tasks.html">CHG-20009959</a> &nbsp;<span class="badge badge-yellow">⚠ Gelb</span></div>
+      <div class="sum-meta">MKN: Annweiler – neue Praxis bleibt extern</div>
+      <div class="sum-stats">
+        Tasks: <strong>12 / 22</strong> abgeschlossen (55 %) &nbsp;·&nbsp; Offen: 7 &nbsp;·&nbsp; Zurückgestellt: 3<br>
+        Laufzeit: 05.03.2026 – 03.08.2026 &nbsp;·&nbsp; Verbleibend: <strong>40 Tage</strong><br>
+        IAM blockiert · Switch ausstehend · 4 Deadlines überschritten
+      </div>
+      <div style="margin-top:0.5rem">
+        <div style="display:flex;justify-content:space-between;font-size:0.69rem;color:#6b7280;margin-bottom:2px"><span>Tasks 55 %</span><span>Zeit 72 %</span></div>
+        <div class="mini-bar"><div class="mini-fill" style="width:55%;background:#2563eb"></div></div>
+        <div class="mini-bar" style="margin-top:3px"><div class="mini-fill" style="width:72%;background:#d97706"></div></div>
+      </div>
+    </div>
+    <div class="sum-card">
+      <div><a href="chg-20017717-tasks.html">CHG-20017717</a> &nbsp;<span class="badge badge-red">⛔ Rot</span></div>
+      <div class="sum-meta">[MRA/RPUMV]: Einrichtung Infrastruktur MVZ Radeberg</div>
+      <div class="sum-stats">
+        Tasks: <strong>4 / 10</strong> abgeschlossen (40 %) &nbsp;·&nbsp; Offen: 6<br>
+        Laufzeit: 01.04.2026 – 07.07.2026 &nbsp;·&nbsp; GoLive: <strong style="color:#f87171">07.07.2026 (13 Tage)</strong><br>
+        84 % Zeitverbrauch · 4 Tasks ohne Bearbeiter
+      </div>
+      <div style="margin-top:0.5rem">
+        <div style="display:flex;justify-content:space-between;font-size:0.69rem;color:#6b7280;margin-bottom:2px"><span>Tasks 40 %</span><span>Zeit 84 %</span></div>
+        <div class="mini-bar"><div class="mini-fill" style="width:40%;background:#2563eb"></div></div>
+        <div class="mini-bar" style="margin-top:3px"><div class="mini-fill" style="width:84%;background:#ef4444"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── PROJEKTE: Sonstige ───────────────────────── -->
+<div class="view" id="p-sonst">
+  <div class="proj-card" style="max-width:480px">
+    <div class="proj-card-head">
+      <div class="proj-icon" style="background:#1f2937">📁</div>
+      <div><div class="proj-title">Sonstige Projekte</div><div class="proj-sub">Weitere Vorhaben</div></div>
+    </div>
+    <div class="proj-body">
+      <div class="proj-empty">Noch keine Projekte verknüpft.</div>
+    </div>
+    <div class="proj-btn dim">Einrichten ↗</div>
+  </div>
+</div>
+
+<!-- ─── DASHBOARDS: UC0 – GANTT ──────────────────── -->
+<div class="view" id="d-uc0" style="display:none">
+
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-label">Aktive Changes</div><div class="kpi-value">2</div><div class="kpi-sub">2026</div></div>
+    <div class="kpi"><div class="kpi-label">Tasks gesamt</div><div class="kpi-value">32</div><div class="kpi-sub">alle Changes</div></div>
+    <div class="kpi"><div class="kpi-label">Abgeschlossen</div><div class="kpi-value" style="color:#4ade80">16</div><div class="kpi-sub">50 %</div></div>
+    <div class="kpi"><div class="kpi-label">Heute</div><div class="kpi-value" style="font-size:1rem;color:#f59e0b">24.06.2026</div><div class="kpi-sub">Tag 175 · 47,8 % des Jahres</div></div>
+    <div class="kpi"><div class="kpi-label">Nächster GoLive</div><div class="kpi-value" style="color:#f87171;font-size:1rem">07.07.2026</div><div class="kpi-sub">in 13 Tagen</div></div>
+  </div>
+
+  <div class="dash-card">
+    <div class="dash-card-title">Gantt – Zeitlinie Gesamtjahr 2026 (alle aktiven Changes)</div>
+
+    <!--
+      % = (tag_des_jahres − 1) / 364 × 100
+      Monatsstarts: Jan 0% | Feb 8.5% | Mär 16.2% | Apr 24.7% | Mai 33.0%
+                    Jun 41.5% | Jul 49.7% | Aug 58.2% | Sep 66.8% | Okt 75.0%
+                    Nov 83.5% | Dez 91.8%
+      Heute 24.06.2026 = Tag 175 → 174/364 = 47.8%
+      CHG-20009959: 05.03 (Tag 64) = 17.3% → 03.08 (Tag 215) = 58.8%, width 41.5%
+      CHG-20017717: 01.04 (Tag 91) = 24.7% → 07.07 (Tag 188) = 51.4%, width 26.7%
+      GoLive 07.07 = 51.4%
+    -->
+    <div class="gantt-wrap">
+      <div class="ruler">
+        <div class="ruler-month" style="left:0%">Jan</div>
+        <div class="ruler-month" style="left:8.5%">Feb</div>
+        <div class="ruler-month" style="left:16.2%">Mär</div>
+        <div class="ruler-month" style="left:24.7%">Apr</div>
+        <div class="ruler-month" style="left:33.0%">Mai</div>
+        <div class="ruler-month" style="left:41.5%">Jun</div>
+        <div class="ruler-month" style="left:49.7%">Jul</div>
+        <div class="ruler-month" style="left:58.2%">Aug</div>
+        <div class="ruler-month" style="left:66.8%">Sep</div>
+        <div class="ruler-month" style="left:75.0%">Okt</div>
+        <div class="ruler-month" style="left:83.5%">Nov</div>
+        <div class="ruler-month" style="left:91.8%">Dez</div>
+      </div>
+
+      <!-- CHG-20009959 -->
+      <div class="g-row">
+        <div class="g-lbl">
+          <div><span class="g-dot dot-yellow"></span><a href="chg-20009959-tasks.html">CHG-20009959</a></div>
+          <div class="s">MKN: Annweiler &nbsp;·&nbsp; 05.03. – 03.08.2026</div>
+        </div>
+        <div class="g-track">
+          <div class="g-bg"></div>
+          <div class="g-gl" style="left:8.5%"></div><div class="g-gl" style="left:16.2%"></div>
+          <div class="g-gl" style="left:24.7%"></div><div class="g-gl" style="left:33.0%"></div>
+          <div class="g-gl" style="left:41.5%"></div><div class="g-gl" style="left:49.7%"></div>
+          <div class="g-gl" style="left:58.2%"></div><div class="g-gl" style="left:66.8%"></div>
+          <div class="g-gl" style="left:75.0%"></div><div class="g-gl" style="left:83.5%"></div>
+          <div class="g-gl" style="left:91.8%"></div>
+          <div class="g-bar" style="left:17.3%;width:41.5%;background:linear-gradient(90deg,#1d4ed8,#3b82f6)">
+            <div class="g-fill" style="width:55%;background:#fff"></div>
+            <span>12/22 Tasks · 55 % · ⚠ Gelb</span>
+          </div>
+          <div class="g-today" style="left:47.8%"><span class="g-today-lbl">Heute</span></div>
+        </div>
+      </div>
+
+      <!-- CHG-20017717 -->
+      <div class="g-row">
+        <div class="g-lbl">
+          <div><span class="g-dot dot-red"></span><a href="chg-20017717-tasks.html">CHG-20017717</a></div>
+          <div class="s">[MRA/RPUMV]: Radeberg &nbsp;·&nbsp; 01.04. – 07.07.2026</div>
+        </div>
+        <div class="g-track">
+          <div class="g-bg"></div>
+          <div class="g-gl" style="left:8.5%"></div><div class="g-gl" style="left:16.2%"></div>
+          <div class="g-gl" style="left:24.7%"></div><div class="g-gl" style="left:33.0%"></div>
+          <div class="g-gl" style="left:41.5%"></div><div class="g-gl" style="left:49.7%"></div>
+          <div class="g-gl" style="left:58.2%"></div>
+          <div class="g-bar" style="left:24.7%;width:26.7%;background:linear-gradient(90deg,#991b1b,#ef4444)">
+            <div class="g-fill" style="width:40%;background:#fff"></div>
+            <span>4/10 Tasks · 40 % · ⛔ Rot</span>
+          </div>
+          <div class="g-golive" style="left:51.4%"><span class="g-golive-lbl">GoLive</span></div>
+          <div class="g-today" style="left:47.8%"></div>
+        </div>
+      </div>
+
+      <div class="g-legend">
+        <div class="g-legend-item"><div style="width:3px;height:14px;background:#f59e0b;border-radius:2px"></div>Heute (24.06.2026)</div>
+        <div class="g-legend-item"><div style="width:3px;height:14px;background:#f87171;border-radius:2px"></div>GoLive-Termin</div>
+        <div class="g-legend-item"><span class="g-dot dot-yellow" style="margin:0"></span>Achtung</div>
+        <div class="g-legend-item"><span class="g-dot dot-red" style="margin:0"></span>Kritisch</div>
+        <div class="g-legend-item"><div style="width:12px;height:8px;background:rgba(255,255,255,0.18);border-radius:2px"></div>Balkenfüllung = Task-Abschluss</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="summary-row">
+    <div class="sum-card">
+      <div><a href="chg-20009959-tasks.html">CHG-20009959</a> &nbsp;<span class="badge badge-yellow">⚠ Gelb</span></div>
+      <div class="sum-meta">MKN: Annweiler – neue Praxis bleibt extern</div>
+      <div class="sum-stats">
+        Tasks: <strong>12 / 22</strong> (55 %) &nbsp;·&nbsp; Offen: 7 &nbsp;·&nbsp; Zurückgestellt: 3<br>
+        Laufzeit: 05.03. – 03.08.2026 &nbsp;·&nbsp; Verbleibend: <strong>40 Tage</strong>
+      </div>
+      <div style="margin-top:0.5rem">
+        <div style="display:flex;justify-content:space-between;font-size:0.69rem;color:#6b7280;margin-bottom:2px"><span>Tasks 55 %</span><span>Zeit 72 %</span></div>
+        <div class="mini-bar"><div class="mini-fill" style="width:55%;background:#2563eb"></div></div>
+        <div class="mini-bar" style="margin-top:3px"><div class="mini-fill" style="width:72%;background:#d97706"></div></div>
+      </div>
+    </div>
+    <div class="sum-card">
+      <div><a href="chg-20017717-tasks.html">CHG-20017717</a> &nbsp;<span class="badge badge-red">⛔ Rot</span></div>
+      <div class="sum-meta">[MRA/RPUMV]: Einrichtung Infrastruktur MVZ Radeberg</div>
+      <div class="sum-stats">
+        Tasks: <strong>4 / 10</strong> (40 %) &nbsp;·&nbsp; Offen: 6<br>
+        Laufzeit: 01.04. – 07.07.2026 &nbsp;·&nbsp; GoLive: <strong style="color:#f87171">07.07.2026 (13 Tage)</strong>
+      </div>
+      <div style="margin-top:0.5rem">
+        <div style="display:flex;justify-content:space-between;font-size:0.69rem;color:#6b7280;margin-bottom:2px"><span>Tasks 40 %</span><span>Zeit 84 %</span></div>
+        <div class="mini-bar"><div class="mini-fill" style="width:40%;background:#2563eb"></div></div>
+        <div class="mini-bar" style="margin-top:3px"><div class="mini-fill" style="width:84%;background:#ef4444"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── DASHBOARDS: UC1 – GANTT MULTIJAHR ─────────── -->
+<div class="view" id="d-uc1" style="display:none">
+  <div class="dash-card">
+    <div class="dash-card-title" style="display:flex;align-items:center;justify-content:flex-end;gap:1rem;flex-wrap:wrap">
+      <div style="display:flex;gap:1rem;flex-wrap:wrap;justify-content:flex-end">
+        <label class="gantt-filter-check"><input type="checkbox" id="uc1-patchday-check" checked onchange="setGanttPatchdayVisible(this.checked)"> Patchdays</label>
+        <label class="gantt-filter-check"><input type="checkbox" id="uc1-kunde-check" checked onchange="setGanttKundeVisible(this.checked)"> Kunden-Changes</label>
+        <label class="gantt-filter-check"><input type="checkbox" id="uc1-intern-check" checked onchange="setGanttInternVisible(this.checked)"> Interne Changes</label>
+        <label class="gantt-filter-check"><input type="checkbox" id="uc1-nodate-check" onchange="setGanttNoDateVisible(this.checked)"> Ohne Start/Ende</label>
+        <label class="gantt-filter-check"><input type="checkbox" id="uc1-past-check" onchange="setGanttPastVisible(this.checked)"> Vergangene Changes</label>
+      </div>
+    </div>
+    <div class="timescale-row">
+      <span class="timescale-label">Zeitraum:</span>
+      <button class="ts-btn" data-months="1" onclick="setGanttTimescale(1)">1M</button>
+      <button class="ts-btn" data-months="6" onclick="setGanttTimescale(6)">6M</button>
+      <button class="ts-btn active" data-months="12" onclick="setGanttTimescale(12)">12M</button>
+      <button class="ts-btn" data-months="24" onclick="setGanttTimescale(24)">24M</button>
+      <button class="ts-btn" data-months="60" onclick="setGanttTimescale(60)">60M</button>
+    </div>
+    <div class="timescale-row">
+      <span class="timescale-label">Sortierung:</span>
+      <select class="ts-select" id="uc1-sort-field" onchange="setGanttSort(this.value)" title="Change-Alter basiert auf 'Geplanter Start'">
+        <option value="laufend" selected>Laufend + Fertigstellungsdatum</option>
+        <option value="nummer">Nummer</option>
+        <option value="alter">Change-Alter (Start)</option>
+      </select>
+      <button class="ts-btn" id="uc1-sort-asc" onclick="setGanttSortDir('asc')">Aufsteigend ↑</button>
+      <button class="ts-btn active" id="uc1-sort-desc" onclick="setGanttSortDir('desc')">Absteigend ↓</button>
+    </div>
+    <div class="gantt-split">
+      <div class="gantt-labels-col" id="uc1-gantt-labels"></div>
+      <div class="gantt-time-col">
+        <div class="gantt-topscroll" id="uc1-topscroll"><div class="gantt-topscroll-inner" id="uc1-topscroll-inner"></div></div>
+        <div class="gantt-time-scroll" id="uc1-time-scroll"><div id="uc1-time-inner"></div></div>
+      </div>
+    </div>
+    <div class="g-legend">
+      <div class="g-legend-item"><span class="g-dot dot-yellow" style="margin:0"></span>Feinplanung</div>
+      <div class="g-legend-item"><span class="g-dot" style="margin:0;background:#93c5fd;box-shadow:0 0 4px #93c5fd"></span>Vorplanung</div>
+      <div class="g-legend-item"><span class="g-dot" style="margin:0;background:#3b82f6;box-shadow:0 0 4px #3b82f6"></span>Umsetzung</div>
+      <div class="g-legend-item"><span class="g-dot dot-green" style="margin:0"></span>Geschlossen</div>
+      <div class="g-legend-item"><div style="width:2px;height:14px;background:#f59e0b;border-radius:2px"></div>Heute</div>
+      <div class="g-legend-item"><div style="width:12px;height:8px;background:#4b5563;border-radius:2px"></div>Offene Tasks</div>
+      <div class="g-legend-item"><div style="width:12px;height:8px;background:linear-gradient(90deg,#fdd4c6,#fa9370);border-radius:2px"></div>Erledigt (Kunde, kräftiger = näher an 100&nbsp;%)</div>
+      <div class="g-legend-item"><div style="width:12px;height:8px;background:linear-gradient(90deg,#b3d5d6,#007377);border-radius:2px"></div>Erledigt (Intern, kräftiger = näher an 100&nbsp;%)</div>
+    </div>
+    <div class="note-box" id="uc1-missing-note" style="display:none"></div>
+  </div>
+</div>
+
+<!-- ─── DASHBOARDS: UC2 – AKTUELLE ANSICHT ────────── -->
+<div class="view" id="d-uc2" style="display:none">
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-label">Offene Changes</div><div class="kpi-value" id="uc2-kpi-offene-changes">16</div><div class="kpi-sub" id="uc2-kpi-changes-sub">von 17 gesamt</div></div>
+    <div class="kpi"><div class="kpi-label">Kunden-Changes</div><div class="kpi-value" id="uc2-kpi-kunde">1</div><div class="kpi-sub" id="uc2-kpi-kunde-sub">von 16 offenen</div></div>
+    <div class="kpi"><div class="kpi-label">Interne Changes</div><div class="kpi-value" id="uc2-kpi-intern">15</div><div class="kpi-sub" id="uc2-kpi-intern-sub">von 16 offenen</div></div>
+    <div class="kpi"><div class="kpi-label">Offene Tasks</div><div class="kpi-value" id="uc2-kpi-offene-tasks">2534</div><div class="kpi-sub" id="uc2-kpi-tasks-sub">von 4573 gesamt</div></div>
+  </div>
+  <div class="dash-card">
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-title">Offene Changes nach Label</div>
+        <div class="chart-wrap"><canvas id="c-pie1"></canvas></div>
+        <div class="c-legend" id="cl-pie1"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Offene Tasks nach Team (nur INF-Teams)</div>
+        <div class="chart-wrap"><canvas id="c-pie2"></canvas></div>
+        <div class="c-legend" id="cl-pie2"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Offene Tasks nach Label</div>
+        <div class="chart-wrap"><canvas id="c-pie3"></canvas></div>
+        <div class="c-legend" id="cl-pie3"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Anzahl der Changes pro Team (nur INF-Teams)</div>
+        <div class="chart-wrap"><canvas id="c-pie4"></canvas></div>
+        <div class="c-legend" id="cl-pie4"></div>
+        <div class="note-box" id="uc2-pie4-note" style="display:none;margin-top:0.5rem"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── DASHBOARDS: UC3 – AKTUELLE ANSICHT (Balken) ─ -->
+<div class="view" id="d-uc3" style="display:none">
+  <div class="dash-card">
+    <div class="dash-card-title">Aktuelle Ansicht: Tasks je Change (Balkenhöhe = Gesamt, Füllung = erledigt)</div>
+    <div class="timescale-row">
+      <span class="timescale-label">Sortierung:</span>
+      <select class="ts-select" id="uc3-sort-field" onchange="setUC3Sort(this.value)">
+        <option value="nummer">Nummer</option>
+        <option value="offen" selected>Offene Tasks</option>
+      </select>
+      <button class="ts-btn active" id="uc3-sort-asc" onclick="setUC3SortDir('asc')">Aufsteigend ↑</button>
+      <button class="ts-btn" id="uc3-sort-desc" onclick="setUC3SortDir('desc')">Absteigend ↓</button>
+    </div>
+    <div class="chart-container-lg" id="uc3-chart-wrap"><canvas id="c-bar2"></canvas></div>
+    <div class="c-legend" style="justify-content:center;margin-top:1rem" id="cl-bar2"></div>
+    <div class="note-box" id="uc3-sort-note">Sortierung nach „Geplanter Start" noch nicht möglich – dieses Feld ist im aktuellen Datenexport für alle Changes leer. Aktuell sortiert nach ChangeID.</div>
+  </div>
+  <div class="dash-card">
+    <div class="dash-card-title">Detailtabelle</div>
+    <div class="table-scroll"><table class="mini-table" id="uc3-table">
+      <thead><tr><th>Change</th><th>Beschreibung</th><th>Status</th><th>Offen</th><th>Erledigt</th><th>Gesamt</th><th>%</th></tr></thead>
+      <tbody id="uc3-table-body"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ─── DASHBOARDS: UC4 – FORTSCHRITT HISTORISCH ──── -->
+<div class="view" id="d-uc4" style="display:none">
+  <div class="dash-card">
+    <div class="dash-card-title">Fortschritt über die Zeit, alle Projekte (Changes &amp; Tasks, historisch)</div>
+    <div class="timescale-row">
+      <span class="timescale-label">Ansicht:</span>
+      <button class="ts-btn active" data-gran="day" onclick="setUC4Granularity('day')">Tag</button>
+      <button class="ts-btn" data-gran="week" onclick="setUC4Granularity('week')">Woche</button>
+      <button class="ts-btn" data-gran="month" onclick="setUC4Granularity('month')">Monat</button>
+      <button class="ts-btn" data-gran="year" onclick="setUC4Granularity('year')">Jahr</button>
+    </div>
+    <div class="chart-scroll-x"><div class="chart-container-lg" id="uc4-chart-inner"><canvas id="c-combo"></canvas></div></div>
+    <div class="c-legend" style="margin-top:1rem;justify-content:center" id="cl-combo"></div>
+    <div class="note-box" id="uc4-history-note">Historie startet mit der ersten Verbindung zur Datenbank und wächst ab sofort täglich um einen Datenpunkt (lokal im Bridge-Dienst gespeichert) – der SQL-Export selbst deckt nur wenige Tage ab.</div>
+  </div>
+</div>
+
+<!-- ─── DASHBOARDS: UC4.1 – ZEITVERLAUF DETAIL ──── -->
+<div class="view" id="d-uc41" style="display:none">
+  <div class="dash-card">
+    <div class="dash-card-title">Usecase 4.1 – Task-Abschluss-Fortschritt nach Monat und Change-Projekt</div>
+    <div class="chart-container-lg"><canvas id="c-combo41"></canvas></div>
+    <div class="c-legend" style="margin-top:1rem;justify-content:center" id="cl-combo41"></div>
+  </div>
+  <div class="dash-card">
+    <div class="dash-card-title">Kritische Punkte &amp; Risiken</div>
+    <div class="table-scroll"><table class="mini-table">
+      <thead><tr><th>Change</th><th>Risiko</th><th>Auswirkung</th><th>Ampel</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><a href="chg-20009959-tasks.html" style="color:#60a5fa">CHG-20009959</a></td>
+          <td>IAM blockiert durch fehlende AD-OU</td>
+          <td>Kein Login für Praxis-Mitarbeiter</td>
+          <td><span class="badge badge-red">⛔ Kritisch</span></td>
+        </tr>
+        <tr>
+          <td><a href="chg-20009959-tasks.html" style="color:#60a5fa">CHG-20009959</a></td>
+          <td>Switch-Konfiguration (Fleischer) – keine Antwort</td>
+          <td>APs können nicht provisioniert werden</td>
+          <td><span class="badge badge-red">⛔ Kritisch</span></td>
+        </tr>
+        <tr>
+          <td><a href="chg-20009959-tasks.html" style="color:#60a5fa">CHG-20009959</a></td>
+          <td>TDN-Leitung Versatel in Klärung</td>
+          <td>Laut Versatel vor GoLive gesichert</td>
+          <td><span class="badge badge-yellow">⚠ Achtung</span></td>
+        </tr>
+        <tr>
+          <td><a href="chg-20009959-tasks.html" style="color:#60a5fa">CHG-20009959</a></td>
+          <td>4 Einzel-Deadlines überschritten</td>
+          <td>Verzögerung Gesamtprojekt</td>
+          <td><span class="badge badge-yellow">⚠ Achtung</span></td>
+        </tr>
+        <tr>
+          <td><a href="chg-20017717-tasks.html" style="color:#60a5fa">CHG-20017717</a></td>
+          <td>Switch-Konfiguration – Deadline 24.06.</td>
+          <td>Temporäre Switche müssen vor Raumprüfung weg</td>
+          <td><span class="badge badge-red">⛔ Kritisch</span></td>
+        </tr>
+        <tr>
+          <td><a href="chg-20017717-tasks.html" style="color:#60a5fa">CHG-20017717</a></td>
+          <td>4 Tasks ohne Bearbeiter zugewiesen</td>
+          <td>Kein Fortschritt möglich</td>
+          <td><span class="badge badge-red">⛔ Kritisch</span></td>
+        </tr>
+        <tr>
+          <td><a href="chg-20017717-tasks.html" style="color:#60a5fa">CHG-20017717</a></td>
+          <td>GoLive in 13 Tagen (07.07.2026)</td>
+          <td>60% Tasks noch offen</td>
+          <td><span class="badge badge-red">⛔ Kritisch</span></td>
+        </tr>
+      </tbody>
+    </table></div>
+  </div>
+</div>
+
+</div><!-- /content -->
+
+<script>
+// ══════════════════════════════════════════════════
+//  DB-VERBINDUNG (Bridge-Dienst iap_dashboard_api.py)
+// ══════════════════════════════════════════════════
+const CONN_STORAGE_KEY = 'iap_dashboard_conn';
+let liveUC2Data = null;
+
+function loadConnConfig() {
+  const raw = localStorage.getItem(CONN_STORAGE_KEY);
+  if (raw) { try { return JSON.parse(raw); } catch(e) { /* fällt durch auf Default */ } }
+  return { api: 'http://localhost:5000', server: 'localhost\\SQLEXPRESS', database: 'IAPPowerBI', authType: 'windows', username: '' };
+}
+function saveConnConfigLocal(cfg) {
+  localStorage.setItem(CONN_STORAGE_KEY, JSON.stringify(cfg));
+}
+function apiBase(cfg) {
+  return (cfg.api || 'http://localhost:5000').replace(/\/$/, '');
+}
+
+function openConnModal() {
+  const cfg = loadConnConfig();
+  document.getElementById('cf-api').value      = cfg.api || '';
+  document.getElementById('cf-server').value   = cfg.server || '';
+  document.getElementById('cf-database').value = cfg.database || '';
+  document.getElementById('cf-auth').value     = cfg.authType || 'windows';
+  document.getElementById('cf-username').value = cfg.username || '';
+  document.getElementById('cf-password').value = '';
+  toggleAuthFields();
+  const statusEl = document.getElementById('cf-status');
+  statusEl.textContent = '';
+  statusEl.className = 'modal-status';
+  document.getElementById('conn-modal-overlay').classList.add('open');
+}
+function closeConnModal() {
+  document.getElementById('conn-modal-overlay').classList.remove('open');
+}
+function toggleAuthFields() {
+  const isSql = document.getElementById('cf-auth').value === 'sql';
+  document.getElementById('cf-sql-fields').style.display = isSql ? 'block' : 'none';
+}
+function readModalConfig() {
+  return {
+    api:      document.getElementById('cf-api').value.trim() || 'http://localhost:5000',
+    server:   document.getElementById('cf-server').value.trim(),
+    database: document.getElementById('cf-database').value.trim(),
+    authType: document.getElementById('cf-auth').value,
+    username: document.getElementById('cf-username').value.trim(),
+    password: document.getElementById('cf-password').value
+  };
+}
+async function testConnection() {
+  const cfg = readModalConfig();
+  const statusEl = document.getElementById('cf-status');
+  statusEl.textContent = 'Teste Verbindung…';
+  statusEl.className = 'modal-status';
+  try {
+    const res = await fetch(apiBase(cfg) + '/api/config', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cfg)
+    });
+    const data = await res.json();
+    if (data.success) {
+      statusEl.textContent = '✓ ' + data.message;
+      statusEl.className = 'modal-status ok';
+    } else {
+      statusEl.textContent = '✗ ' + data.message;
+      statusEl.className = 'modal-status err';
+    }
+  } catch (e) {
+    statusEl.textContent = '✗ Bridge-Dienst nicht erreichbar unter ' + apiBase(cfg) + ' (läuft iap_dashboard_api.py?)';
+    statusEl.className = 'modal-status err';
+  }
+}
+function saveConnection() {
+  const cfg = readModalConfig();
+  saveConnConfigLocal(cfg);
+  closeConnModal();
+  refreshConnectionStatus();
+  loadLiveData();
+}
+async function refreshConnectionStatus() {
+  const cfg = loadConnConfig();
+  const dot = document.getElementById('conn-dot');
+  const label = document.getElementById('conn-label');
+  try {
+    const res = await fetch(apiBase(cfg) + '/api/status');
+    const data = await res.json();
+    if (data.connected) {
+      dot.className = 'conn-dot ok';
+      label.textContent = 'Verbunden · ' + data.database;
+    } else {
+      dot.className = 'conn-dot err';
+      label.textContent = 'Verbindungsfehler (Demo-Daten)';
+    }
+  } catch (e) {
+    dot.className = 'conn-dot';
+    label.textContent = 'Nicht verbunden (Demo-Daten)';
+  }
+}
+let ucChangesData = null; // je-Change Rohdaten fuer UC1 (Gantt) und UC3 (Balken), aus /api/uc1
+let uc4History = null;    // historische Snapshots fuer UC4, aus /api/uc4
+
+async function loadLiveData() {
+  const cfg = loadConnConfig();
+  const base = apiBase(cfg);
+
+  // UC2 – Kuchencharts
+  try {
+    const res = await fetch(base + '/api/usecase2');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    liveUC2Data = data;
+    // Header "Stand: ..." = neuestes Export-Datum im aktuellen Projekt-Scope,
+    // nicht das Datum des Seitenaufrufs. Gilt fuer alle Usecases ausser
+    // UC4/UC4.1 (die zeigen bewusst den ganzen Zeitverlauf, nicht nur "Stand jetzt").
+    if (data.standDatum) {
+      const standEl = document.getElementById('dash-stand-datum');
+      if (standEl) standEl.textContent = fmtDate(data.standDatum);
+    }
+    if (initialized['d-uc2']) {
+      initialized['d-uc2'] = false;
+      ['c-pie1','c-pie2','c-pie3','c-pie4'].forEach(id => {
+        const canvas = document.getElementById(id);
+        const existing = canvas && Chart.getChart(canvas);
+        if (existing) existing.destroy();
+      });
+      initCharts('d-uc2');
+      updateUC2Kpis();
+    }
+  } catch (e) {
+    liveUC2Data = null;
+  }
+
+  // UC1 / UC3 – Rohdaten je Change (Gantt + Balken)
+  try {
+    const res = await fetch(base + '/api/uc1');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    ucChangesData = data.changes;
+    renderGantt1(true);
+    renderUC3();
+    renderUC2TasksByLabel();
+  } catch (e) {
+    ucChangesData = null; // renderGantt1()/renderUC3()/renderUC2TasksByLabel() greifen dann auf DEMO_UC_CHANGES zurueck
+    renderGantt1(true);
+    renderUC3();
+    renderUC2TasksByLabel();
+  }
+
+  // UC4 – Historie
+  try {
+    const res = await fetch(base + '/api/uc4');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    uc4History = data.history;
+    renderUC4();
+  } catch (e) {
+    uc4History = null; // renderUC4() zeigt dann einen einzelnen Demo-Datenpunkt
+    renderUC4();
+  }
+}
+function updateUC2Kpis() {
+  if (!liveUC2Data) return;
+  const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+  set('uc2-kpi-offene-changes', liveUC2Data.offeneChanges);
+  set('uc2-kpi-changes-sub', `von ${liveUC2Data.totalChanges} gesamt`);
+  set('uc2-kpi-offene-tasks', liveUC2Data.offeneTasks);
+  set('uc2-kpi-tasks-sub', `von ${liveUC2Data.totalTasks} gesamt`);
+  set('uc2-kpi-kunde', liveUC2Data.changesByLabel.kunde);
+  set('uc2-kpi-kunde-sub', `von ${liveUC2Data.offeneChanges} offenen`);
+  set('uc2-kpi-intern', liveUC2Data.changesByLabel.intern);
+  set('uc2-kpi-intern-sub', `von ${liveUC2Data.offeneChanges} offenen`);
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  refreshConnectionStatus();
+  loadLiveData();
+});
+
+// ══════════════════════════════════════════════════
+//  UC1 (GANTT) / UC3 (BALKEN) / UC4 (HISTORIE)
+//  Reale Daten aus SQL-DB IAPPowerBI, Stand 06.07.2026 (Testexport).
+//  Hinweis: Geplanter Start/Ende sind in diesem Export bei allen Changes
+//  leer -> Gantt zeigt "Keine Planungsdaten"-Hinweis statt Balken, bis
+//  echte Prod-Daten vorliegen. Balkenchart (UC3) nutzt echte Task-Zahlen,
+//  sortiert (mangels Startdatum) nach ChangeID.
+// ══════════════════════════════════════════════════
+const STATUS_COLORS_UC = { 'Feinplanung': '#f59e0b', 'Vorplanung': '#93c5fd', 'Umsetzung': '#3b82f6', 'Geschlossen': '#22c55e' };
+
+const DEMO_UC_CHANGES = [
+  { changeId:'CHG-20000822', description:'ESM KB IT - ASKIT minerva (Neuaufbau ESM System)', status:'Umsetzung',   start:null, end:null, tasksTotal:342, tasksDone:306 },
+  { changeId:'CHG-20004317', description:'ESM KB Einkauf - Implementierung ASKIT Serviceportal', status:'Feinplanung', start:null, end:null, tasksTotal:18,  tasksDone:18  },
+  { changeId:'CHG-20010610', description:'Ablösung Server 2016 wegen Abkündigung Support MS', status:'Umsetzung',  start:null, end:null, tasksTotal:306, tasksDone:306 },
+  { changeId:'CHG-20010803', description:'[MRA] (Radeberg): Implementierung x.vianova als zentr. System', status:'Umsetzung', start:null, end:null, tasksTotal:511, tasksDone:239 },
+  { changeId:'CHG-20010805', description:'[MBE] (Barmbek): Implementierung x.vianova als zentr. System', status:'Umsetzung', start:null, end:null, tasksTotal:459, tasksDone:51 },
+  { changeId:'CHG-20012438', description:'HAM "SD Synapse" hsm-asynm01 Betriebssystem', status:'Umsetzung', start:null, end:null, tasksTotal:34, tasksDone:17 },
+  { changeId:'CHG-20013726', description:'[MDD] (Diabetologicum Dresden): Implementierung x.vianova', status:'Feinplanung', start:null, end:null, tasksTotal:408, tasksDone:17 },
+  { changeId:'CHG-20014300', description:'[MSR] (Herrmsdorf): Implementierung x.vianova als zentr. System', status:'Feinplanung', start:null, end:null, tasksTotal:306, tasksDone:0 },
+  { changeId:'CHG-20014310', description:'ESM KB Personal - Implementierung ASKIT Serviceportal', status:'Feinplanung', start:null, end:null, tasksTotal:9, tasksDone:9 },
+  { changeId:'CHG-20014536', description:'[MME] (MVZ Am Tivoli): Implementierung x.vianova', status:'Umsetzung', start:null, end:null, tasksTotal:663, tasksDone:578 },
+  { changeId:'CHG-20014820', description:'[MRA] (NBS Sebnitz): Implementierung x.vianova als zentr. System', status:'Umsetzung', start:null, end:null, tasksTotal:479, tasksDone:232 },
+  { changeId:'CHG-20016022', description:'[GBUB] x.vianova_Quartalsupdate Q3/26', status:'Feinplanung', start:null, end:null, tasksTotal:34, tasksDone:17 },
+  { changeId:'CHG-20016307', description:'[MKN] (Annweiler non BP): Implementierung x.vianova', status:'Umsetzung', start:null, end:null, tasksTotal:510, tasksDone:136 },
+  { changeId:'CHG-20017717', description:'[MRA/RPUMV]: Errichtung der Infrastruktur für MVZ Radeberg', status:'Umsetzung', start:null, end:null, tasksTotal:170, tasksDone:96 },
+  { changeId:'CHG-20017818', description:'SEE: Fachabteilung-Anbindung Bildgeber - Modalitäten', status:'Geschlossen', start:null, end:null, tasksTotal:17, tasksDone:17 },
+  { changeId:'CHG-20018039', description:'ESM KB IT - ASKIT Weiterentwicklung Servity 2026', status:'Umsetzung', start:null, end:null, tasksTotal:18, tasksDone:0 },
+  { changeId:'CHG-20018566', description:'[PAR] Parchim Onkologie: Implementierung x.vianova', status:'Umsetzung', start:null, end:null, tasksTotal:289, tasksDone:0 },
+];
+
+const DEMO_UC4_HISTORY = [
+  { date:'2026-07-06', changesTotal:17, changesOpen:16, changesClosed:1, tasksTotal:4573, tasksOpen:2534, tasksClosed:2039 }
+];
+
+let ganttMonths = 12;
+
+function addMonths(date, n) {
+  const d = new Date(date);
+  d.setMonth(d.getMonth() + n);
+  return d;
+}
+function fmtMonth(d) {
+  const names = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+  return names[d.getMonth()] + " '" + String(d.getFullYear()).slice(2);
+}
+function fmtDate(iso) {
+  const d = new Date(iso);
+  return String(d.getDate()).padStart(2,'0') + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + d.getFullYear();
+}
+
+// Wie weit man in der Gantt-Zeitschiene zurueckscrollen kann (in Monaten vor heute).
+// Vorwaerts wird dynamisch bis zum spaetesten Change-Ende begrenzt (siehe renderGantt1).
+const GANTT_RANGE_MONTHS_BEFORE = 6;
+
+let ganttSortField = 'laufend'; // Default: aktuell laufende Changes zuerst, dann nach Fertigstellungsdatum
+let ganttSortDir = 'desc'; // Default: Absteigend
+let ganttShowPatchdays = true; // Checkboxen oben rechts - alle 3 default angehakt (= sichtbar)
+let ganttShowKunde = true;
+let ganttShowIntern = true;
+let ganttShowNoDate = false; // Default: aus - Changes ohne Geplanter Start/Ende bleiben standardmaessig ausgeblendet
+let ganttShowPast = false; // Default: aus - Changes mit Geplantes Ende in der Vergangenheit (>1 Woche) bleiben standardmaessig ausgeblendet
+
+function setGanttTimescale(months) {
+  ganttMonths = months;
+  document.querySelectorAll('#d-uc1 .ts-btn[data-months]').forEach(b => b.classList.toggle('active', parseInt(b.dataset.months, 10) === months));
+  renderGantt1(true); // Zoom geaendert -> Ansicht wieder auf Standardfenster zuruecksetzen
+}
+
+function setGanttSort(field) {
+  ganttSortField = field;
+  renderGantt1();
+}
+
+function setGanttSortDir(dir) {
+  ganttSortDir = dir;
+  const ascBtn = document.getElementById('uc1-sort-asc');
+  const descBtn = document.getElementById('uc1-sort-desc');
+  if (ascBtn) ascBtn.classList.toggle('active', dir === 'asc');
+  if (descBtn) descBtn.classList.toggle('active', dir === 'desc');
+  renderGantt1();
+}
+
+function setGanttPatchdayVisible(visible) {
+  ganttShowPatchdays = visible;
+  renderGantt1();
+}
+
+// "Kunde" = Change-Labels enthaelt "Kunde" (gleiche Logik wie im UC2-Kuchendiagramm),
+// alles andere gilt als "Intern".
+function isGanttKundeChange(ch) {
+  return /kunde/i.test(ch.labels || '');
+}
+
+function setGanttKundeVisible(visible) {
+  ganttShowKunde = visible;
+  renderGantt1();
+}
+
+function setGanttInternVisible(visible) {
+  ganttShowIntern = visible;
+  renderGantt1();
+}
+
+function setGanttNoDateVisible(visible) {
+  ganttShowNoDate = visible;
+  renderGantt1();
+}
+
+function setGanttPastVisible(visible) {
+  ganttShowPast = visible;
+  renderGantt1();
+}
+
+// Farbe fuer den erledigten Balkenanteil: helle Abstufung bei niedrigem Fortschritt,
+// wird zunehmend kraeftiger/dunkler, je naeher die Fertigstellung an 100% liegt.
+// TEST: Farbschema aus Usecase 2 ("Offene Changes nach Label") uebernommen - Kunde-Changes
+// in Abstufungen von #FA9370 (Salmon), interne Changes in Abstufungen von #007377 (Petrol).
+const GANTT_PROGRESS_LOW = [179, 213, 214];  // helle Abstufung von #007377 (Intern)
+const GANTT_PROGRESS_HIGH = [0, 115, 119];   // #007377 (Intern)
+const GANTT_PROGRESS_LOW_KUNDE = [253, 212, 198];  // helle Abstufung von #FA9370 (Kunde)
+const GANTT_PROGRESS_HIGH_KUNDE = [250, 147, 112]; // #FA9370 (Kunde)
+function ganttProgressColor(pct, isKunde) {
+  const low = isKunde ? GANTT_PROGRESS_LOW_KUNDE : GANTT_PROGRESS_LOW;
+  const high = isKunde ? GANTT_PROGRESS_HIGH_KUNDE : GANTT_PROGRESS_HIGH;
+  const t = Math.max(0, Math.min(100, pct)) / 100;
+  const r = Math.round(low[0] + (high[0] - low[0]) * t);
+  const g = Math.round(low[1] + (high[1] - low[1]) * t);
+  const b = Math.round(low[2] + (high[2] - low[2]) * t);
+  return `rgb(${r},${g},${b})`;
+}
+
+// Ist der Change aktuell aktiv (heute liegt zwischen Geplanter Start und Geplantes Ende)?
+function isGanttChangeRunning(ch) {
+  if (!ch.start || !ch.end) return false;
+  const now = Date.now();
+  return new Date(ch.start).getTime() <= now && now <= new Date(ch.end).getTime();
+}
+
+// Sortiert nach: "Laufend + Fertigstellungsdatum" (Default - aktuell laufende Changes
+// immer zuerst, danach je nach Richtung nach "Geplantes Ende" sortiert), Nummer
+// (alphanumerisch) oder Change-Alter (Zeit seit "Geplanter Start" - je laenger her,
+// desto "aelter"). Changes ohne das jeweilige Datum landen unabhaengig von der
+// Richtung immer am Ende.
+function sortUcData(data) {
+  const dirMul = ganttSortDir === 'asc' ? 1 : -1;
+  const now = Date.now();
+
+  function sortValue(ch) {
+    if (ganttSortField === 'alter') return ch.start ? now - new Date(ch.start).getTime() : null;
+    if (ganttSortField === 'laufend') return ch.end ? new Date(ch.end).getTime() : null;
+    return null; // 'nummer' wird separat behandelt
+  }
+
+  const sorted = data.slice();
+  if (ganttSortField === 'nummer') {
+    sorted.sort((a, b) => (a.changeId || '').localeCompare(b.changeId || '', undefined, { numeric: true }) * dirMul);
+  } else {
+    sorted.sort((a, b) => {
+      if (ganttSortField === 'laufend') {
+        const aRunning = isGanttChangeRunning(a) ? 0 : 1;
+        const bRunning = isGanttChangeRunning(b) ? 0 : 1;
+        if (aRunning !== bRunning) return aRunning - bRunning; // laufende Changes immer zuerst
+      }
+      const av = sortValue(a), bv = sortValue(b);
+      const aNull = (av === null || av === undefined || isNaN(av));
+      const bNull = (bv === null || bv === undefined || isNaN(bv));
+      if (aNull && bNull) return 0;
+      if (aNull) return 1;
+      if (bNull) return -1;
+      return (av - bv) * dirMul;
+    });
+  }
+  return sorted;
+}
+
+// resetScroll = true -> Scrollposition wird auf das per Zeitraum-Button gewaehlte
+// Standardfenster zurueckgesetzt (Zoom-Wechsel bzw. allererste Anzeige). Bei
+// reiner Neusortierung bleibt die aktuelle Scrollposition erhalten.
+function renderGantt1(resetScroll) {
+  const labelsCol = document.getElementById('uc1-gantt-labels');
+  const timeInner = document.getElementById('uc1-time-inner');
+  const timeScroll = document.getElementById('uc1-time-scroll');
+  const topScroll = document.getElementById('uc1-topscroll');
+  const topScrollInner = document.getElementById('uc1-topscroll-inner');
+  if (!labelsCol || !timeInner || !timeScroll) return;
+
+  let allData = ucChangesData && ucChangesData.length ? ucChangesData : DEMO_UC_CHANGES;
+  if (!ganttShowPatchdays) {
+    allData = allData.filter(ch => !/patchday/i.test(ch.description || ''));
+  }
+  if (!ganttShowKunde) {
+    allData = allData.filter(ch => !isGanttKundeChange(ch));
+  }
+  if (!ganttShowIntern) {
+    allData = allData.filter(ch => isGanttKundeChange(ch));
+  }
+  const totalAfterToggleFilters = allData.length;
+
+  // Changes, deren "Geplantes Ende" mehr als 1 Woche in der Vergangenheit liegt,
+  // werden standardmaessig nicht mehr angezeigt - unabhaengig vom exakten Status-Text
+  // (nicht jede laengst abgelaufene Change traegt tatsaechlich den Status "Geschlossen",
+  // z.B. manche Patchday-Changes). Sie erzeugen sonst nur winzige, kaum sichtbare Balken
+  // ganz links im Chart. Ueber die Checkbox "Vergangene Changes" laesst sich dieser Filter
+  // aufheben, um wirklich alle - auch schon lange abgeschlossene - Changes zu sehen.
+  if (!ganttShowPast) {
+    const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    allData = allData.filter(ch => !(ch.end && new Date(ch.end).getTime() < oneWeekAgo));
+  }
+
+  // Changes ohne "Geplanter Start" und/oder "Geplantes Ende" lassen sich nicht sinnvoll
+  // auf der Zeitschiene einordnen und sind daher standardmaessig ausgeblendet. Ueber die
+  // Checkbox "Ohne Start/Ende" koennen sie trotzdem eingeblendet werden - sie erscheinen
+  // dann als Zeile ohne Balken mit Hinweistext (siehe Rendering weiter unten).
+  const withDate = allData.filter(ch => ch.start && ch.end);
+  const withoutDate = allData.filter(ch => !(ch.start && ch.end));
+  const data = sortUcData(ganttShowNoDate ? withDate.concat(withoutDate) : withDate);
+  const hiddenCount = totalAfterToggleFilters - data.length;
+
+  const today = new Date();
+  // Zurueck-Scrollen ist auf ein festes, kurzes Polster begrenzt (nicht mehrere Jahre).
+  const rangeStart = addMonths(today, -GANTT_RANGE_MONTHS_BEFORE);
+
+  // Vorwaerts nur so weit scrollbar wie das spaeteste "Geplantes Ende" unter den
+  // aktuell angezeigten Changes reicht (plus etwas Puffer) - nie ins Blaue hinein.
+  let maxEnd = null;
+  data.forEach(ch => {
+    if (ch.end) {
+      const e = new Date(ch.end);
+      if (!maxEnd || e > maxEnd) maxEnd = e;
+    }
+  });
+
+  const windowStart = addMonths(today, -1);
+  const windowEnd = addMonths(windowStart, ganttMonths);
+
+  let rangeEnd = maxEnd ? addMonths(maxEnd, 1) : windowEnd;
+  if (rangeEnd < windowEnd) rangeEnd = windowEnd; // das gewaehlte Zeitraum-Fenster muss immer vollstaendig hineinpassen
+  const totalMs = rangeEnd - rangeStart;
+
+  const viewportWidth = timeScroll.clientWidth || 900;
+  const totalPxWidth = Math.max(viewportWidth, Math.round(viewportWidth * (totalMs / (windowEnd - windowStart))));
+
+  function xPct(d) { return (d - rangeStart) / totalMs * 100; }
+
+  let rulerHtml = '<div class="ruler">';
+  let cursor = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), 1);
+  if (cursor < rangeStart) cursor = addMonths(cursor, 1);
+  const monthStep = ganttMonths > 24 ? 3 : 1; // bei 60M nur jeden 3. Monat beschriften
+  let i = 0;
+  while (cursor < rangeEnd) {
+    if (i % monthStep === 0) {
+      rulerHtml += `<div class="ruler-month" style="left:${xPct(cursor)}%">${fmtMonth(cursor)}</div>`;
+    }
+    cursor = addMonths(cursor, 1);
+    i++;
+  }
+  rulerHtml += '</div>';
+
+  const todayPct = xPct(today);
+  let labelsHtml = '<div style="height:22px;margin-bottom:0.4rem"></div>'; // Platzhalter ueber den Labels, auf Hoehe des Rulers
+  let tracksHtml = '';
+
+  data.forEach(ch => {
+    labelsHtml += `<div class="gantt-label-row"><div class="gl-inner"><div class="gl-id"><span class="g-dot" style="background:${STATUS_COLORS_UC[ch.status] || '#6b7280'};flex-shrink:0"></span><span style="color:#60a5fa;font-size:0.74rem;font-weight:700">${ch.changeId}</span></div><div class="s">${(ch.description || '').slice(0, 46)}</div></div></div>`;
+
+    tracksHtml += '<div class="g-track-row"><div class="g-bg"></div>';
+
+    if (!ch.start || !ch.end) {
+      // Kein Zeitraum hinterlegt -> laesst sich nicht auf der Zeitschiene einordnen.
+      // Wird nur angezeigt, wenn die Checkbox "Ohne Start/Ende" aktiv ist (siehe oben).
+      tracksHtml += `<div style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:0.68rem;color:#9ca3af;font-style:italic;white-space:nowrap">Kein Geplanter Start/Ende hinterlegt</div>`;
+    } else {
+      const s = new Date(ch.start), e = new Date(ch.end);
+      let leftPct = xPct(s);
+      let widthPct = xPct(e) - xPct(s);
+      leftPct = Math.max(0, Math.min(100, leftPct));
+      widthPct = Math.max(0.3, Math.min(100 - leftPct, widthPct));
+      const donePct = ch.tasksTotal ? Math.round(ch.tasksDone / ch.tasksTotal * 100) : 0;
+      const doneColor = ganttProgressColor(donePct, isGanttKundeChange(ch));
+      // Balken: grau = noch offene Tasks, blau = erledigte Tasks - je naeher an 100%,
+      // desto dunkler das Blau. Der Change-Status wird stattdessen ueber den Punkt
+      // links vor der ChangeID angezeigt (siehe Legende).
+      tracksHtml += `<div class="g-bar" style="left:${leftPct}%;width:${widthPct}%;background:#4b5563"><div class="g-fill" style="width:${donePct}%;background:${doneColor};opacity:1"></div><span>${ch.tasksDone}/${ch.tasksTotal} · ${ch.status || ''}</span></div>`;
+      if (todayPct >= 0 && todayPct <= 100) {
+        tracksHtml += `<div class="g-today" style="left:${todayPct}%"></div>`;
+      }
+    }
+    tracksHtml += '</div>';
+  });
+
+  labelsCol.innerHTML = labelsHtml;
+  timeInner.innerHTML = rulerHtml + tracksHtml;
+  timeInner.style.width = totalPxWidth + 'px';
+  if (topScrollInner) topScrollInner.style.width = totalPxWidth + 'px';
+  // Label- und Zeitstrahl-Zeilen haben jetzt beide eine feste Hoehe (28px, Beschreibung
+  // einzeilig mit Ellipsis abgeschnitten statt umzubrechen) - dadurch bleiben sie immer
+  // synchron, ohne dass die Hoehe zur Laufzeit gemessen/angeglichen werden muss. Das
+  // macht die Liste insgesamt kompakter, sodass mehr Changes auf den Bildschirm passen.
+
+  if (resetScroll) {
+    const initialScrollLeft = Math.round(xPct(windowStart) / 100 * totalPxWidth);
+    timeScroll.scrollLeft = initialScrollLeft;
+    if (topScroll) topScroll.scrollLeft = initialScrollLeft;
+  }
+
+  const noteEl = document.getElementById('uc1-missing-note');
+  if (noteEl) {
+    if (hiddenCount > 0) {
+      noteEl.style.display = 'block';
+      const reasons = [];
+      if (!ganttShowPast) reasons.push('Geplantes Ende liegt mehr als 1 Woche zurück (einblendbar über "Vergangene Changes")');
+      if (!ganttShowNoDate) reasons.push('fehlender Geplanter Start/Ende (einblendbar über "Ohne Start/Ende")');
+      const reason = reasons.length ? reasons.join(', oder ') : 'aktive Filter';
+      noteEl.textContent = `${hiddenCount} von ${totalAfterToggleFilters} Changes werden hier nicht angezeigt (${reason}).`;
+    } else {
+      noteEl.style.display = 'none';
+    }
+  }
+}
+
+// Zwei Scrollbalken (oben ueber dem Ruler + native unten am Zeitstrahl) bleiben synchron,
+// damit man beim Scrollen nicht erst zum unteren Rand des Gantt-Charts scrollen muss.
+(function setupGanttScrollSync() {
+  let syncing = false;
+  document.addEventListener('DOMContentLoaded', () => {
+    const topScroll = document.getElementById('uc1-topscroll');
+    const timeScroll = document.getElementById('uc1-time-scroll');
+    if (!topScroll || !timeScroll) return;
+    topScroll.addEventListener('scroll', () => {
+      if (syncing) return;
+      syncing = true; timeScroll.scrollLeft = topScroll.scrollLeft; syncing = false;
+    });
+    timeScroll.addEventListener('scroll', () => {
+      if (syncing) return;
+      syncing = true; topScroll.scrollLeft = timeScroll.scrollLeft; syncing = false;
+    });
+  });
+  let resizeTimer = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      if (document.getElementById('d-uc1') && document.getElementById('d-uc1').style.display !== 'none') {
+        renderGantt1(false);
+      }
+    }, 200);
+  });
+})();
+
+let uc3SortField = 'offen'; // Default: Offene Tasks aufsteigend (wenigste offene Tasks zuerst)
+let uc3SortDir = 'asc';
+
+function setUC3Sort(field) {
+  uc3SortField = field;
+  renderUC3();
+}
+
+function setUC3SortDir(dir) {
+  uc3SortDir = dir;
+  const ascBtn = document.getElementById('uc3-sort-asc');
+  const descBtn = document.getElementById('uc3-sort-desc');
+  if (ascBtn) ascBtn.classList.toggle('active', dir === 'asc');
+  if (descBtn) descBtn.classList.toggle('active', dir === 'desc');
+  renderUC3();
+}
+
+function sortUC3Data(data) {
+  const dirMul = uc3SortDir === 'asc' ? 1 : -1;
+  const sorted = data.slice();
+  if (uc3SortField === 'offen') {
+    sorted.sort((a, b) => {
+      const aOpen = Math.max(0, (a.tasksTotal || 0) - (a.tasksDone || 0));
+      const bOpen = Math.max(0, (b.tasksTotal || 0) - (b.tasksDone || 0));
+      return (aOpen - bOpen) * dirMul;
+    });
+  } else {
+    sorted.sort((a, b) => (a.changeId || '').localeCompare(b.changeId || '', undefined, { numeric: true }) * dirMul);
+  }
+  return sorted;
+}
+
+function renderUC3() {
+  const source = (ucChangesData && ucChangesData.length ? ucChangesData : DEMO_UC_CHANGES)
+    .filter(ch => Math.max(0, (ch.tasksTotal || 0) - (ch.tasksDone || 0)) > 0); // Changes ohne offene Tasks werden hier nicht angezeigt
+  const data = sortUC3Data(source);
+
+  const labels = data.map(ch => ch.changeId);
+  const done = data.map(ch => ch.tasksDone);
+  const open = data.map(ch => Math.max(0, ch.tasksTotal - ch.tasksDone));
+
+  const canvas = document.getElementById('c-bar2');
+  const existing = canvas && Chart.getChart(canvas);
+  if (existing) existing.destroy();
+
+  new Chart(canvas, {
+    type: 'bar',
+    data: { labels, datasets: [
+      { label: 'Erledigt', data: done, backgroundColor: '#007377', stack: 'a' },
+      { label: 'Offen',    data: open, backgroundColor: '#FA9370', stack: 'a' },
+    ]},
+    options: { responsive:true, maintainAspectRatio:false,
+      interaction: { mode: 'index', intersect: false },
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          // Immer beide Werte (Erledigt + Offen) zusammen anzeigen, egal ob der
+          // blaue oder graue Balkenanteil gehovert wird - Reihenfolge fix: Erledigt zuerst.
+          callbacks: { label: (item) => `${item.dataset.label}: ${item.raw}` }
+        }
+      },
+      scales:{ x:{stacked:true, grid:{color:'#1f2937'}, ticks:{maxRotation:60, minRotation:45, font:{size:10}}},
+               y:{stacked:true, grid:{color:'#1f2937'}} } }
+  });
+  makeLegend('cl-bar2', ['Erledigt','Offen'], ['#007377','#FA9370']);
+
+  const tbody = document.getElementById('uc3-table-body');
+  if (tbody) {
+    tbody.innerHTML = data.map(ch => {
+      const pct = ch.tasksTotal ? Math.round(ch.tasksDone/ch.tasksTotal*100) : 0;
+      const openCount = Math.max(0, (ch.tasksTotal || 0) - (ch.tasksDone || 0));
+      const color = STATUS_COLORS_UC[ch.status] || '#6b7280';
+      return `<tr>
+        <td style="color:#60a5fa">${ch.changeId}</td>
+        <td style="color:#9ca3af">${(ch.description||'').slice(0,60)}</td>
+        <td><span class="badge" style="background:${color}22;color:${color};border:1px solid ${color}">${ch.status||'–'}</span></td>
+        <td>${openCount}</td>
+        <td>${ch.tasksDone}</td>
+        <td>${ch.tasksTotal}</td>
+        <td>${pct} %<div class="pbar"><div class="pbar-fill" style="width:${pct}%;background:${color}"></div></div></td>
+      </tr>`;
+    }).join('');
+  }
+}
+
+let uc4Granularity = 'day';
+
+function uc4IsoWeekKey(d) {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = (date.getUTCDay() + 6) % 7; // Mo=0 .. So=6
+  date.setUTCDate(date.getUTCDate() - dayNum + 3); // naechster Donnerstag
+  const firstThursday = new Date(Date.UTC(date.getUTCFullYear(), 0, 4));
+  const firstDayNum = (firstThursday.getUTCDay() + 6) % 7;
+  firstThursday.setUTCDate(firstThursday.getUTCDate() - firstDayNum + 3);
+  const weekNr = 1 + Math.round((date - firstThursday) / (7 * 86400000));
+  return date.getUTCFullYear() + '-W' + String(weekNr).padStart(2, '0');
+}
+
+function uc4BucketKey(dateStr, gran) {
+  if (gran === 'day') return dateStr;
+  const d = new Date(dateStr);
+  if (gran === 'week') return uc4IsoWeekKey(d);
+  if (gran === 'month') return dateStr.slice(0, 7);
+  if (gran === 'year') return dateStr.slice(0, 4);
+  return dateStr;
+}
+
+// Fasst die taegliche Historie zu Wochen-/Monats-/Jahres-Punkten zusammen.
+// Je Bucket wird der letzte verfuegbare Snapshot verwendet (= Stand am Ende des Zeitraums),
+// da es sich um kumulierte Zaehlerstaende und keine Delta-Werte handelt.
+function aggregateUC4History(history, gran) {
+  if (gran === 'day') return history.slice();
+  const buckets = {};
+  history.forEach(h => {
+    const key = uc4BucketKey(h.date, gran);
+    if (!buckets[key] || h.date > buckets[key].date) buckets[key] = h;
+  });
+  return Object.keys(buckets).sort().map(k => buckets[k]);
+}
+
+function fmtUC4Label(h, gran) {
+  const d = new Date(h.date);
+  if (gran === 'year') return String(d.getFullYear());
+  if (gran === 'month') return fmtMonth(d);
+  return fmtDate(h.date); // Tag & Woche: Datum des jeweiligen Standes
+}
+
+function setUC4Granularity(gran) {
+  uc4Granularity = gran;
+  document.querySelectorAll('#d-uc4 .ts-btn').forEach(b => b.classList.toggle('active', b.dataset.gran === gran));
+  renderUC4();
+}
+
+function renderUC4() {
+  const fullHistory = (uc4History && uc4History.length ? uc4History : DEMO_UC4_HISTORY);
+  const history = aggregateUC4History(fullHistory, uc4Granularity);
+  const labels = history.map(h => fmtUC4Label(h, uc4Granularity));
+
+  // Chart-Breite an Punktanzahl anpassen -> Scrollbar erscheint nur wenn noetig
+  const scrollWrap = document.querySelector('#d-uc4 .chart-scroll-x');
+  const inner = document.getElementById('uc4-chart-inner');
+  if (scrollWrap && inner) {
+    const minPxPerPoint = 70;
+    const available = scrollWrap.clientWidth || (labels.length * minPxPerPoint);
+    const needed = labels.length * minPxPerPoint;
+    inner.style.width = Math.max(needed, available) + 'px';
+  }
+
+  const canvas = document.getElementById('c-combo');
+  const existing = canvas && Chart.getChart(canvas);
+  if (existing) existing.destroy();
+
+  // Changes (gesamt/offen/geschlossen) als gruppierte Balken, Tasks weiterhin als Linien
+  // (gemischter Chart-Typ: Basis 'bar', die drei Task-Datasets ueberschreiben mit type:'line').
+  new Chart(canvas, {
+    type: 'bar',
+    data: { labels, datasets: [
+      // "order": in Chart.js zeichnen Datasets mit niedrigerem order-Wert weiter oben (im
+      // Vordergrund) - Balken bekommen daher einen hoeheren Wert als die Linien, damit die
+      // Tasks-Linien immer sichtbar ueber den Changes-Balken liegen.
+      { type:'bar',  label:'Changes gesamt',    data: history.map(h=>h.changesTotal),  backgroundColor:'#007377', borderRadius:3, order:2 },
+      { type:'bar',  label:'Changes offen',     data: history.map(h=>h.changesOpen),   backgroundColor:'#FA9370', borderRadius:3, order:2 },
+      { type:'bar',  label:'Changes geschl.',   data: history.map(h=>h.changesClosed), backgroundColor:'#22c55e', borderRadius:3, order:2 },
+      { type:'line', label:'Tasks gesamt',      data: history.map(h=>h.tasksTotal),    borderColor:'#007377', backgroundColor:'transparent', borderWidth:2, tension:0.25, pointRadius:3, pointBackgroundColor:'#fff', pointBorderColor:'#000', pointBorderWidth:1, yAxisID:'y2', order:1 },
+      { type:'line', label:'Tasks offen',       data: history.map(h=>h.tasksOpen),     borderColor:'#FA9370', backgroundColor:'transparent', borderWidth:2, tension:0.25, pointRadius:3, pointBackgroundColor:'#fff', pointBorderColor:'#000', pointBorderWidth:1, yAxisID:'y2', order:1 },
+      { type:'line', label:'Tasks geschlossen', data: history.map(h=>h.tasksClosed),   borderColor:'#22c55e', backgroundColor:'transparent', borderWidth:2, tension:0.25, pointRadius:3, pointBackgroundColor:'#fff', pointBorderColor:'#000', pointBorderWidth:1, yAxisID:'y2', order:1 },
+    ]},
+    options: { responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{ x:{grid:{color:'#1f2937'}},
+               y: {grid:{color:'#1f2937'}, title:{display:true,text:'Anzahl Changes',color:'#6b7280'}, position:'left'},
+               y2:{grid:{display:false}, title:{display:true,text:'Anzahl Tasks',color:'#6b7280'}, position:'right'} } }
+  });
+  makeLegend('cl-combo',
+    ['Changes gesamt','Changes offen','Changes geschl.','Tasks gesamt','Tasks offen','Tasks geschlossen'],
+    ['#007377','#FA9370','#22c55e','#007377','#FA9370','#22c55e']);
+}
+
+// ══════════════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════════════
+let activeL1 = 'projekte';
+
+function switchL1(id, el) {
+  activeL1 = id;
+
+  // Alle L1-Tabs
+  document.querySelectorAll('.nav-l1 .tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+
+  // Sub-Nav sichtbar/unsichtbar
+  document.getElementById('subnav-projekte').style.display   = (id === 'projekte')   ? 'flex' : 'none';
+  document.getElementById('subnav-dashboards').style.display = (id === 'dashboards') ? 'flex' : 'none';
+
+  // Alle Views verstecken
+  document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
+
+  // Aktiven Sub-Tab des gewählten L1 aktivieren
+  const subNav = document.getElementById('subnav-' + id);
+  const activeSubTab = subNav.querySelector('.tab.active');
+  if (activeSubTab) {
+    const viewId = getViewId(id, subNav);
+    if (viewId) document.getElementById(viewId).style.display = 'block';
+  }
+}
+
+function getViewId(l1, subNav) {
+  const active = subNav.querySelector('.tab.active');
+  if (!active) return null;
+  // Ermittle den View-ID aus der onclick-Funktion
+  const onclick = active.getAttribute('onclick');
+  const match = onclick && onclick.match(/'([^']+)'/);
+  return match ? match[1] : null;
+}
+
+function switchL2(viewId, el, l1) {
+  // Sub-Tab-Klassen
+  const subNav = document.getElementById('subnav-' + l1);
+  subNav.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+
+  // Alle Views verstecken
+  document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
+
+  // Ziel-View anzeigen
+  document.getElementById(viewId).style.display = 'block';
+
+  // Charts beim ersten Zeigen initialisieren
+  initCharts(viewId);
+}
+
+// ══════════════════════════════════════════════════
+//  CHARTS
+// ══════════════════════════════════════════════════
+Chart.defaults.color = '#9ca3af';
+Chart.defaults.borderColor = '#1f2937';
+Chart.defaults.font.family = 'Segoe UI, Arial, sans-serif';
+
+const C = { blue:'#3b82f6', red:'#ef4444', yellow:'#f59e0b', green:'#22c55e',
+            teal:'#14b8a6', orange:'#f97316', purple:'#8b5cf6', gray:'#6b7280' };
+
+const initialized = {};
+
+function makeLegend(id, labels, colors) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = labels.map((l,i) =>
+    `<div class="c-leg-item"><div class="c-dot" style="background:${colors[i]}"></div>${l}</div>`
+  ).join('');
+}
+
+// Feste Markenfarben je INF-Team (vom Nutzer vorgegeben) - gemeinsam genutzt von "Offene
+// Tasks nach Team" und "Anzahl der Changes pro Team". Teams, die sich keiner Regel zuordnen
+// lassen, fallen auf die generische Palette zurueck (Warnung in Konsole).
+const TEAM_COLOR_PALETTE = ['#3b82f6','#ef4444','#f59e0b','#22c55e','#14b8a6','#f97316','#8b5cf6','#6b7280','#ec4899','#06b6d4','#84cc16','#f43f5e','#a3a3a3','#fb923c','#4ade80','#818cf8','#facc15'];
+const TEAM_COLOR_RULES = [
+  { re: /vmware/i,        color: '#4C7C9B' },
+  { re: /sql/i,           color: '#FA9370' },
+  { re: /projektmanagement/i, color: '#007377' },
+  { re: /netzwerk/i,      color: '#7A9D54' },
+  { re: /architektur/i,   color: '#6C1D45' },
+  { re: /domain/i,        color: '#6558B1' },
+  { re: /desktop/i,       color: '#BB16A3' },
+  { re: /collaboration/i, color: '#FFB81C' },
+];
+function resolveTeamColors(labels) {
+  const unmatched = [];
+  const colors = labels.map((label, i) => {
+    const rule = TEAM_COLOR_RULES.find(r => r.re.test(label));
+    if (rule) return rule.color;
+    unmatched.push(label);
+    return TEAM_COLOR_PALETTE[i % TEAM_COLOR_PALETTE.length];
+  });
+  if (unmatched.length) {
+    console.warn('UC2: Keine feste Farbe fuer folgende Teams zugeordnet (Fallback-Palette genutzt): ' + unmatched.join(', '));
+  }
+  return colors;
+}
+
+// Pie 4 (UC2) – Anzahl der Changes pro Team (Change-Bearbeitergruppe, nicht Task-Ebene).
+// Kommt aus liveUC2Data.changesByTeam (Backend ermittelt die Spalte dynamisch, da die genaue
+// Schreibweise der Change-Bearbeitergruppe in der DB-View unbekannt ist). Falls das Backend
+// die Spalte nicht finden konnte (changesByTeamNote gesetzt) oder gar keine Live-Verbindung
+// besteht, wird ein Hinweis statt eines (falschen) Charts angezeigt.
+function renderUC2ChangesByTeam() {
+  const canvas = document.getElementById('c-pie4');
+  const noteEl = document.getElementById('uc2-pie4-note');
+  if (!canvas) return;
+
+  let teamLabels = [], teamData = [], note = null;
+  if (liveUC2Data && Array.isArray(liveUC2Data.changesByTeam) && liveUC2Data.changesByTeam.length) {
+    teamLabels = liveUC2Data.changesByTeam.map(t => t.team);
+    teamData   = liveUC2Data.changesByTeam.map(t => t.count);
+  } else if (liveUC2Data && liveUC2Data.changesByTeamNote) {
+    note = liveUC2Data.changesByTeamNote;
+  } else if (!liveUC2Data) {
+    // Demo-Platzhalter (keine Live-Verbindung) - grobe Verteilung passend zu "Offene Tasks nach Team"
+    teamLabels = ['INF VMWare','INF Projektmanagement','INF Netzwerk','INF SQL Administration','INF IT Architektur','INF Domain Administration','INF Collaboration','INF Desktop Operation'];
+    teamData   = [9,7,5,4,2,2,1,1];
+  }
+  const infIdx = teamLabels.map((_, i) => i).filter(i => /INF/i.test(teamLabels[i]));
+  teamLabels = infIdx.map(i => teamLabels[i]);
+  teamData   = infIdx.map(i => teamData[i]);
+
+  const existing = Chart.getChart(canvas);
+  if (existing) existing.destroy();
+
+  if (!teamLabels.length) {
+    if (noteEl) {
+      noteEl.style.display = 'block';
+      noteEl.textContent = note || 'Keine Daten zu Changes je Team verfügbar.';
+    }
+    const legendEl = document.getElementById('cl-pie4');
+    if (legendEl) legendEl.innerHTML = '';
+    return;
+  }
+  if (noteEl) noteEl.style.display = 'none';
+
+  const teamColors = resolveTeamColors(teamLabels);
+  new Chart(canvas, {
+    type:'doughnut',
+    data:{ labels:teamLabels,
+           datasets:[{data:teamData, backgroundColor:teamColors, borderWidth:2, borderColor:'#16213e'}]},
+    options:{plugins:{legend:{display:false}}, cutout:'62%', responsive:true, maintainAspectRatio:false}
+  });
+  makeLegend('cl-pie4', teamLabels.map((l,i)=>`${l} (${teamData[i]})`), teamColors);
+}
+
+// Pie 3 (UC2) – Offene Tasks nach Label (Kunde vs. Intern; gleiche Klassifikation und Farben
+// wie bei "Offene Changes nach Label"). Wird je-Change aus ucChangesData berechnet, da
+// liveUC2Data diese Aufschluesselung nicht liefert. Eigenstaendige Funktion (statt Inline-Code
+// in initCharts), damit sie auch erneut aufgerufen werden kann, sobald ucChangesData ueber
+// /api/uc1 fertig geladen ist - das passiert zeitlich NACH dem ersten initCharts('d-uc2'),
+// weshalb der Chart sonst dauerhaft auf den (ggf. abweichenden) Demo-Zahlen stehen blieb.
+function renderUC2TasksByLabel() {
+  const canvas = document.getElementById('c-pie3');
+  if (!canvas) return;
+  const uc2ChangeSource = (ucChangesData && ucChangesData.length) ? ucChangesData : DEMO_UC_CHANGES;
+  let tasksInternOpen = 0, tasksKundeOpen = 0;
+  uc2ChangeSource.forEach(ch => {
+    const openCount = Math.max(0, (ch.tasksTotal || 0) - (ch.tasksDone || 0));
+    if (isGanttKundeChange(ch)) tasksKundeOpen += openCount;
+    else tasksInternOpen += openCount;
+  });
+  const existing = Chart.getChart(canvas);
+  if (existing) existing.destroy();
+  new Chart(canvas, {
+    type:'doughnut',
+    data:{ labels:['Intern','Kunde'],
+           datasets:[{data:[tasksInternOpen,tasksKundeOpen], backgroundColor:['#007377','#FA9370'], borderWidth:2, borderColor:'#16213e'}]},
+    options:{plugins:{legend:{display:false}}, cutout:'62%', responsive:true, maintainAspectRatio:false}
+  });
+  const total = tasksInternOpen + tasksKundeOpen || 1;
+  const internPct = (tasksInternOpen/total*100).toFixed(1).replace('.', ',');
+  const kundePct  = (tasksKundeOpen/total*100).toFixed(1).replace('.', ',');
+  makeLegend('cl-pie3',[`Intern – ${tasksInternOpen} Tasks (${internPct} %)`,`Kunde – ${tasksKundeOpen} Tasks (${kundePct} %)`],['#007377','#FA9370']);
+}
+
+function initCharts(viewId) {
+  if (initialized[viewId]) return;
+  initialized[viewId] = true;
+
+  // UC1 – Gantt Multijahr (eigenes Rendering, kein Chart.js)
+  if (viewId === 'd-uc1') {
+    renderGantt1(true);
+  }
+
+  // UC2 – Aktuelle Ansicht: Offene Changes nach Label + Offene Tasks nach Team
+  // Nutzt liveUC2Data (aus Bridge-API), fällt sonst auf eingebettete Demo-Zahlen
+  // (Stand SQL-DB IAPPowerBI, 06.07.2026) zurück.
+  if (viewId === 'd-uc2') {
+    const demoIntern = 15, demoKunde = 1;
+    const demoTeamLabels = ['MED MVZ Competence Center','MED Telematik','MED Patientenzentrierte Services','MED Diagnostik','INF Projektmanagement','INF Netzwerk','INF SQL Administration','ADM Finanzen','STB DCON','ITS Mitte Fieldservice','MED Projektmanagement','ITS Mitte Servicemanagement','MED Imaging und Archive','INF Domain Administration','STB OrgaQM','ADM Personal','INF VMWare'];
+    const demoTeamData   = [1989,119,85,52,51,41,34,34,27,23,17,17,17,9,9,9,1];
+
+    const intern = liveUC2Data ? liveUC2Data.changesByLabel.intern : demoIntern;
+    const kunde  = liveUC2Data ? liveUC2Data.changesByLabel.kunde  : demoKunde;
+
+    let teamLabels = demoTeamLabels, teamData = demoTeamData;
+    if (liveUC2Data && Array.isArray(liveUC2Data.openTasksByTeam) && liveUC2Data.openTasksByTeam.length) {
+      teamLabels = liveUC2Data.openTasksByTeam.map(t => t.team);
+      teamData   = liveUC2Data.openTasksByTeam.map(t => t.count);
+    }
+    // Nur Infrastruktur-Teams anzeigen (alle Bearbeitergruppen, die "INF" im Namen tragen)
+    const infIdx = teamLabels.map((_, i) => i).filter(i => /INF/i.test(teamLabels[i]));
+    teamLabels = infIdx.map(i => teamLabels[i]);
+    teamData   = infIdx.map(i => teamData[i]);
+    const teamColors = resolveTeamColors(teamLabels);
+
+    // Pie 1 – Offene Changes nach Label (Kunde vs. Intern; "Kunde" = Change-Labels enthält "Kunde")
+    new Chart(document.getElementById('c-pie1'), {
+      type:'doughnut',
+      data:{ labels:['Intern','Kunde'],
+             datasets:[{data:[intern,kunde], backgroundColor:['#007377','#FA9370'], borderWidth:2, borderColor:'#16213e'}]},
+      options:{plugins:{legend:{display:false}}, cutout:'62%', responsive:true, maintainAspectRatio:false}
+    });
+    const total12 = intern + kunde || 1;
+    const internPct = (intern/total12*100).toFixed(1).replace('.', ',');
+    const kundePct  = (kunde/total12*100).toFixed(1).replace('.', ',');
+    makeLegend('cl-pie1',[`Intern – ${intern} Changes (${internPct} %)`,`Kunde – ${kunde} Change(s) (${kundePct} %)`],['#007377','#FA9370']);
+
+    // Pie 2 – Offene Tasks nach Team (Bearbeitergruppe)
+    new Chart(document.getElementById('c-pie2'), {
+      type:'doughnut',
+      data:{ labels:teamLabels,
+             datasets:[{data:teamData, backgroundColor:teamColors, borderWidth:2, borderColor:'#16213e'}]},
+      options:{plugins:{legend:{display:false}}, cutout:'62%', responsive:true, maintainAspectRatio:false}
+    });
+    makeLegend('cl-pie2', teamLabels.map((l,i)=>`${l} (${teamData[i]})`), teamColors);
+
+    renderUC2TasksByLabel();
+    renderUC2ChangesByTeam();
+
+    // KPI-Kacheln (Offene Changes/Tasks/Kunden-Changes/Teams) – bislang wurde
+    // updateUC2Kpis() nur beim erneuten Nachladen (schon initialisierte Ansicht)
+    // aufgerufen, nicht aber beim allerersten Aufruf dieser Ansicht. Dadurch
+    // blieben die Kacheln auf den statischen HTML-Platzhalterwerten stehen,
+    // obwohl die Charts daneben schon echte Live-Daten zeigten.
+    updateUC2Kpis();
+  }
+
+  // UC3 – Aktuelle Ansicht: Balken je Change (gestapelt: Erledigt + Offen = Gesamt)
+  if (viewId === 'd-uc3') {
+    renderUC3();
+  }
+
+  // UC4 – Historischer Verlauf (Aktienchart: 6 Linien, waechst taeglich per Snapshot)
+  if (viewId === 'd-uc4') {
+    renderUC4();
+  }
+
+  // UC4.1 – Combo Detail (Task-Abschluss + %-Verlauf)
+  if (viewId === 'd-uc41') {
+    const months41 = ['Mär 26','Apr 26','Mai 26','Jun 26'];
+    new Chart(document.getElementById('c-combo41'), {
+      type:'bar',
+      data:{ labels:months41,
+             datasets:[
+               {type:'bar',  label:'Abgeschl. Tasks MKN',        data:[0,2,6,12],     backgroundColor:C.blue+'cc', stack:'b', order:2},
+               {type:'bar',  label:'Abgeschl. Tasks MRA/RPUMV',  data:[null,0,2,4],   backgroundColor:C.red+'cc',  stack:'b', order:2},
+               {type:'line', label:'% Abschluss MKN',            data:[null,9,27,55], borderColor:C.blue, backgroundColor:'transparent', borderWidth:2, tension:0.3, pointRadius:4, yAxisID:'y2', order:1},
+               {type:'line', label:'% Abschluss MRA/RPUMV',      data:[null,0,20,40], borderColor:C.red,  backgroundColor:'transparent', borderWidth:2, tension:0.3, pointRadius:4, yAxisID:'y2', order:1},
+             ]},
+      options:{ responsive:true, maintainAspectRatio:false,
+                plugins:{legend:{display:false}},
+                scales:{ x:{stacked:true, grid:{color:'#1f2937'}},
+                         y: {stacked:false, grid:{color:'#1f2937'}, title:{display:true,text:'Anzahl Tasks',color:'#6b7280'}, position:'left'},
+                         y2:{grid:{display:false}, title:{display:true,text:'% Abschluss',color:'#6b7280'}, position:'right', min:0, max:100, ticks:{callback:v=>v+'%'}} } }
+    });
+    makeLegend('cl-combo41',['Abgeschl. MKN','Abgeschl. MRA/RPUMV','% MKN','% MRA/RPUMV'],[C.blue,C.red,C.blue,C.red]);
+  }
+}
+</script>
+</body>
+</html>

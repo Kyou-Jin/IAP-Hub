@@ -1,0 +1,74 @@
+[
+  {
+    "date": "2026-06-26",
+    "changesTotal": 100,
+    "changesOpen": 77,
+    "changesClosed": 23,
+    "tasksTotal": 1827,
+    "tasksOpen": 426,
+    "tasksClosed": 1401
+  },
+  {
+    "date": "2026-06-29",
+    "changesTotal": 101,
+    "changesOpen": 77,
+    "changesClosed": 24,
+    "tasksTotal": 1830,
+    "tasksOpen": 409,
+    "tasksClosed": 1421
+  },
+  {
+    "date": "2026-06-30",
+    "changesTotal": 101,
+    "changesOpen": 77,
+    "changesClosed": 24,
+    "tasksTotal": 1831,
+    "tasksOpen": 405,
+    "tasksClosed": 1426
+  },
+  {
+    "date": "2026-07-01",
+    "changesTotal": 100,
+    "changesOpen": 77,
+    "changesClosed": 23,
+    "tasksTotal": 1827,
+    "tasksOpen": 424,
+    "tasksClosed": 1403
+  },
+  {
+    "date": "2026-07-02",
+    "changesTotal": 100,
+    "changesOpen": 77,
+    "changesClosed": 23,
+    "tasksTotal": 1827,
+    "tasksOpen": 424,
+    "tasksClosed": 1403
+  },
+  {
+    "date": "2026-07-03",
+    "changesTotal": 100,
+    "changesOpen": 77,
+    "changesClosed": 23,
+    "tasksTotal": 1827,
+    "tasksOpen": 424,
+    "tasksClosed": 1403
+  },
+  {
+    "date": "2026-07-06",
+    "changesTotal": 101,
+    "changesOpen": 77,
+    "changesClosed": 24,
+    "tasksTotal": 1831,
+    "tasksOpen": 405,
+    "tasksClosed": 1426
+  },
+  {
+    "date": "2026-07-07",
+    "changesTotal": 101,
+    "changesOpen": 77,
+    "changesClosed": 24,
+    "tasksTotal": 1831,
+    "tasksOpen": 405,
+    "tasksClosed": 1426
+  }
+]
