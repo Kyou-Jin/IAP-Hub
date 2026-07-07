@@ -1,0 +1,66 @@
+IAP Dashboard API - Einrichtung als Aufgabe im Windows-Taskplaner
+===================================================================
+
+Inhalt dieses Ordners
+----------------------
+- iap_dashboard_api.py     Backend/Bridge zur SQL-Datenbank
+- requirements.txt         Benoetigte Python-Pakete
+- db_config.json           DB-Verbindungsdaten (VOR PROD-BETRIEB PRUEFEN/ANPASSEN!)
+- uc4_history.json         Bisherige Zeitverlaufs-Historie (Usecase "Historie")
+- run_dashboard_service.bat  Nicht-interaktiver Start (fuer den Taskplaner gedacht)
+- python-3.14.6-amd64.exe  Python-Installer (falls auf dem Server noch kein Python
+                            installiert ist)
+
+Schritt 1: Python installieren (falls noch nicht vorhanden)
+-------------------------------------------------------------
+python-3.14.6-amd64.exe ausfuehren. Wichtig: Haken bei "Add python.exe to PATH"
+setzen, sonst findet der Taskplaner "python" spaeter nicht.
+
+Schritt 2: Python-Pakete installieren (einmalig, manuell)
+-------------------------------------------------------------
+In einer Eingabeaufforderung in diesen Ordner wechseln und ausfuehren:
+    pip install -r requirements.txt
+
+Schritt 3: db_config.json pruefen
+-------------------------------------------------------------
+Server, Datenbank und Authentifizierung auf die PROD-Werte anpassen
+(aktuell stehen dort noch die Dev/Test-Werte drin).
+
+Schritt 4: Task im Windows-Taskplaner anlegen
+-------------------------------------------------------------
+1. Taskplaner oeffnen -> "Aufgabe erstellen..." (nicht "Einfache Aufgabe",
+   damit alle Optionen verfuegbar sind).
+2. Reiter "Allgemein":
+   - Name: z.B. "IAP Dashboard API"
+   - "Unabhaengig von der Benutzeranmeldung ausfuehren" auswaehlen
+   - "Mit hoechsten Privilegien ausfuehren" (falls fuer DB-Zugriff/Windows-Auth
+     benoetigt)
+   - Ein Dienstkonto mit Zugriff auf die SQL-Datenbank hinterlegen
+3. Reiter "Trigger": Neu -> "Bei Systemstart" (optional zusaetzlich "Bei
+   Anmeldung" als zweiten Trigger, falls gewuenscht)
+4. Reiter "Aktionen": Neu ->
+   - Aktion: "Programm starten"
+   - Programm/Skript: der volle Pfad zu run_dashboard_service.bat
+   - Starten in: dieser Ordner (voller Pfad), WICHTIG, sonst findet das Skript
+     iap_dashboard_api.py nicht
+5. Reiter "Bedingungen": Haken bei "Aufgabe nur starten, wenn Computer im
+   Netzbetrieb ist" entfernen (falls der Server das sonst blockiert)
+6. Reiter "Einstellungen": "Task bei Bedarf sofort ausfuehren" aktivieren,
+   und "Wenn die Aufgabe fehlschlaegt, alle ... neu starten" mit ein paar
+   Wiederholungsversuchen konfigurieren, damit die API nach einem Absturz oder
+   Neustart automatisch wieder hochkommt.
+
+Schritt 5: Testen
+-------------------------------------------------------------
+Task einmal manuell per Rechtsklick -> "Ausfuehren" starten, dann pruefen:
+- Laeuft ein python.exe-Prozess im Task-Manager?
+- Steht in service.log (wird in diesem Ordner angelegt) eine Startmeldung
+  ohne Fehler?
+- Ist die API von einem Browser aus erreichbar, z.B.
+  http://<servername>:5000/api/status
+
+Hinweis
+-------------------------------------------------------------
+Dies startet nur das Backend (die API). Die eigentliche Dashboard-Seite
+(IAP_Dashboard_MAIN.html) wird separat ueber IIS/den Webserver ausgeliefert
+und ruft diese API im Hintergrund per Browser-JavaScript auf.
