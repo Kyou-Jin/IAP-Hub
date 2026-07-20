@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Asklepios IT Infrastruktur – Projektübersicht</title>
+<title>Asklepios IT Infrastruktur &amp; Projektmanagement HUB (IAP-HUB)</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   * { box-sizing: border-box; }
@@ -178,6 +178,10 @@
   }
   .ts-select:hover { background: #1e2a4a; }
 
+  /* ── Links zu CHG-Nummern (Sprung ins Ticketsystem) ── */
+  .chg-link { color: #60a5fa; text-decoration: none; }
+  .chg-link:hover { text-decoration: underline; }
+
   /* ── Filter-Checkboxen (UC1: Patchdays / Kunden- / Interne Changes) ── */
   .gantt-filter-check { display: flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; color: #9ca3af; cursor: pointer; user-select: none; white-space: nowrap; }
   .gantt-filter-check:hover { color: #d1d5db; }
@@ -314,6 +318,20 @@
     border-radius: 6px; font-size: 0.76rem; color: #fbbf24; line-height: 1.5;
   }
 
+  /* ── UC2 Cross-Filter-Anzeige (PowerBI-Stil: Klick auf ein Chart-Segment
+     filtert die anderen Charts mit) ── Immer im Layout reserviert (feste Höhe,
+     nur visibility/opacity umgeschaltet), damit die Charts beim Ein-/Ausblenden
+     nicht nach oben/unten springen. ── */
+  .uc2-filter-badge {
+    display: flex; align-items: center; gap: 0.6rem; background: #1e3a5f;
+    border: 1px solid #2563eb; border-radius: 8px; padding: 0 0.9rem;
+    height: 2.5rem; margin-bottom: 1rem; font-size: 0.8rem; color: #d1d5db;
+    visibility: hidden; opacity: 0; transition: opacity 0.15s ease;
+  }
+  .uc2-filter-badge.active { visibility: visible; opacity: 1; }
+  .uc2-filter-badge a { color: #60a5fa; text-decoration: none; font-weight: 600; }
+  .uc2-filter-badge a:hover { text-decoration: underline; }
+
   /* ── Responsive Breakpoints ── */
   @media (max-width: 900px) {
     .content { padding: 1rem; }
@@ -347,13 +365,14 @@
 <!-- ══════════════════════════════════════════════════ -->
 <div class="top-bar">
   <div>
-    <div class="title">Asklepios IT Infrastruktur – Projektübersicht</div>
-    <div class="sub">Stand: <span id="dash-stand-datum">24.06.2026</span> &nbsp;·&nbsp; Quelle: Servity ITSM</div>
+    <div class="title">Asklepios IT Infrastruktur &amp; Projektmanagement HUB (IAP-HUB)</div>
+    <div class="sub">Stand: <span id="dash-stand-datum">24.06.2026</span> &nbsp;·&nbsp; Quelle: Servity ITSM &nbsp;·&nbsp; <span id="dash-design-version"></span> &nbsp;·&nbsp; <span id="dash-build-version"></span></div>
   </div>
   <div class="conn-area">
     <span class="conn-dot" id="conn-dot" title="Verbindungsstatus"></span>
     <span class="conn-label" id="conn-label">Nicht verbunden (Demo-Daten)</span>
     <button class="conn-btn" onclick="openConnModal()">🔌 Verbindung</button>
+    <button class="conn-btn" onclick="openDeployModal()">🚀 Deploy</button>
   </div>
 </div>
 
@@ -394,6 +413,48 @@
         <input type="password" id="cf-password" placeholder="Passwort">
       </div>
 
+      <label>API-Key <span class="hint">(optional – schützt Config &amp; Deploy)</span></label>
+      <div style="display:flex;gap:0.4rem">
+        <input type="password" id="cf-apikey" placeholder="Leer lassen = kein Schutz" style="flex:1">
+        <button type="button" class="modal-btn secondary" style="padding:0.4rem 0.7rem" onclick="toggleApiKeyVisibility()">👁</button>
+      </div>
+      <div style="font-size:0.7rem;color:#4b5563;line-height:1.4">
+        Legt fest, welchen Schlüssel DIESER Browser ab jetzt mitschickt (z.B. wenn
+        dir jemand den bereits gültigen Schlüssel mitgeteilt hat). "Speichern"
+        unten merkt sich diesen Wert nur lokal in diesem Browser – ändert NICHTS
+        auf dem Server. Solange hier nichts eingetragen ist, sind Config- und
+        Deploy-Endpunkte ungeschützt.
+      </div>
+
+      <label>Server-Schlüssel ändern <span class="hint">(nur zum bewussten Rotieren des gültigen Schlüssels)</span></label>
+      <div style="display:flex;gap:0.4rem">
+        <input type="password" id="cf-apikey-new" placeholder="Neuer Schlüssel" style="flex:1">
+        <button type="button" class="modal-btn secondary" style="padding:0.4rem 0.7rem" onclick="toggleApiKeyNewVisibility()">👁</button>
+      </div>
+      <button type="button" class="modal-btn secondary" style="margin-top:0.4rem;align-self:flex-start" onclick="rotateApiKey()">Server-Schlüssel jetzt ändern</button>
+      <div style="font-size:0.7rem;color:#4b5563;line-height:1.4">
+        Erfordert, dass das Feld "API-Key" oben bereits den AKTUELL gültigen
+        Schlüssel enthält (wird als Nachweis mitgeschickt). Danach gilt
+        server-seitig nur noch der neue Wert – dieser Browser übernimmt ihn
+        automatisch ins Feld oben.
+      </div>
+      <div class="modal-status" id="cf-apikey-rotate-status"></div>
+
+      <label>Admin-Passwort <span class="hint">(sperrt Schnittstellen, diesen Dialog &amp; Deploy)</span></label>
+      <div style="display:flex;gap:0.4rem">
+        <input type="password" id="cf-adminpw-new" placeholder="Neues Passwort (leer speichern = Sperre entfernen)" style="flex:1">
+        <button type="button" class="modal-btn secondary" style="padding:0.4rem 0.7rem" onclick="toggleAdminPwVisibility()">👁</button>
+      </div>
+      <button type="button" class="modal-btn secondary" style="margin-top:0.4rem;align-self:flex-start" onclick="setAdminPassword()">Admin-Passwort speichern/entfernen</button>
+      <div style="font-size:0.7rem;color:#4b5563;line-height:1.4">
+        Sperrt die Bereiche „Schnittstellen“, diesen Verbindungsdialog und „Deploy“
+        hinter einer Passwortabfrage im Browser (nur als Hash gespeichert, nie im
+        Klartext). Das Ändern/Entfernen erfordert denselben API-Key wie oben – falls
+        das Admin-Passwort vergessen wird, kann es damit jederzeit zurückgesetzt
+        werden (Not-Reset während der Entwicklungsphase).
+      </div>
+      <div class="modal-status" id="cf-adminpw-status"></div>
+
       <div class="modal-status" id="cf-status"></div>
     </div>
     <div class="modal-actions">
@@ -405,11 +466,75 @@
 </div>
 
 <!-- ══════════════════════════════════════════════════ -->
+<!-- ADMIN-ENTSPERR-MODAL                                -->
+<!-- ══════════════════════════════════════════════════ -->
+<!-- Wird vor "Schnittstellen", der Datenbankverbindung und "Deploy" eingeblendet,
+     sobald ein Admin-Passwort konfiguriert ist (siehe requireAdminUnlock() weiter
+     unten) - rein browserseitige Sichtsperre, kein Ersatz fuer echte Zugriffs-
+     kontrolle (dafuer der API-Key serverseitig bzw. spaeter die Domaenengruppen-
+     Pruefung, siehe DEFAULT_ACCESS_CONTROL_CONFIG im Backend). -->
+<div class="modal-overlay" id="admin-unlock-modal-overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Admin-Bereich entsperren</div>
+      <div class="modal-close" onclick="closeAdminUnlockModal()">✕</div>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:0.74rem;color:#6b7280;line-height:1.5">
+        Dieser Bereich ist durch ein Admin-Passwort geschützt.
+      </div>
+      <label>Passwort</label>
+      <input type="password" id="admin-unlock-pw" placeholder="Admin-Passwort" onkeydown="if(event.key==='Enter')submitAdminUnlock()">
+      <div class="modal-status" id="admin-unlock-status"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn primary" onclick="submitAdminUnlock()">Entsperren</button>
+      <button class="modal-btn secondary" onclick="closeAdminUnlockModal()">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- IIS-DEPLOY-MODAL                                    -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="deploy-modal-overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Auf Webserver veröffentlichen</div>
+      <div class="modal-close" onclick="closeDeployModal()">✕</div>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:0.74rem;color:#6b7280;line-height:1.5">
+        Kopiert die aktuelle IAP_Dashboard_MAIN.html über den Bridge-Dienst
+        (iap_dashboard_api.py) in den Zielordner des Webservers (z.B. IIS) – das
+        ist die einzige Datei, die für die Anzeige nötig ist, da alle Daten
+        dynamisch zur Laufzeit per Browser-JavaScript vom Bridge-Dienst geholt
+        werden. Der Zielordner kann auch ein Netzwerkpfad (UNC, z.B.
+        \\anderer-server\wwwroot) sein, falls der Webserver auf einem anderen
+        Rechner läuft. Eine dort bereits vorhandene Datei wird vorher automatisch
+        als Backup gesichert (Unterordner _deploy_backups).
+      </div>
+
+      <label>Zielordner (IIS-Website-Pfad)</label>
+      <input type="text" id="df-target" placeholder="C:\inetpub\wwwroot\">
+
+      <div class="modal-status" id="df-status"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn secondary" onclick="saveDeployConfig()">Nur Pfad speichern</button>
+      <button class="modal-btn primary" id="df-deploy-btn" onclick="runDeploy()">Jetzt veröffentlichen</button>
+      <button class="modal-btn secondary" onclick="closeDeployModal()">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════ -->
 <!-- EBENE 1 – HAUPT-REITER                            -->
 <!-- ══════════════════════════════════════════════════ -->
 <div class="nav-l1">
   <div class="tab active" onclick="switchL1('projekte', this)">Projekte</div>
   <div class="tab"        onclick="switchL1('dashboards', this)">Dashboards</div>
+  <div class="tab" style="margin-left:auto" onclick="switchL1('schnittstellen', this)">Schnittstellen</div>
 </div>
 
 <!-- ══════════════════════════════════════════════════ -->
@@ -432,6 +557,13 @@
   <div class="tab"        onclick="switchL2('d-uc4', this, 'dashboards')">Historie</div>
   <div class="tab"        onclick="switchL2('d-uc0', this, 'dashboards')">Gantt – Details (under construction)</div>
   <div class="tab" style="display:none" onclick="switchL2('d-uc41', this, 'dashboards')">Usecase 4.1 – Zeitverlauf Detail</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- EBENE 2c – SCHNITTSTELLEN SUB-REITER              -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="nav-l2" id="subnav-schnittstellen" style="display:none">
+  <div class="tab active" onclick="switchL2('d-a2c', this, 'schnittstellen')">A2C</div>
 </div>
 
 <!-- ══════════════════════════════════════════════════ -->
@@ -469,11 +601,11 @@
         <div><div class="proj-title">MVZ</div><div class="proj-sub">2 aktive Changes</div></div>
       </div>
       <div class="proj-body">
-        <a class="proj-row" href="chg-20009959-tasks.html">
+        <a class="proj-row" href="https://askit.servity-cloud.de/servity/ticket/CHG-20009959" target="_blank" rel="noopener">
           <div><span class="chg-nr">CHG-20009959</span><span class="chg-sub">Annweiler</span></div>
           <span class="badge badge-yellow">⚠ Gelb</span>
         </a>
-        <a class="proj-row" href="chg-20017717-tasks.html" style="border-bottom:none">
+        <a class="proj-row" href="https://askit.servity-cloud.de/servity/ticket/CHG-20017717" target="_blank" rel="noopener" style="border-bottom:none">
           <div><span class="chg-nr">CHG-20017717</span><span class="chg-sub">Radeberg</span></div>
           <span class="badge badge-red">⛔ Rot</span>
         </a>
@@ -513,7 +645,7 @@
 <div class="view" id="p-mvz">
   <div class="summary-row">
     <div class="sum-card">
-      <div><a href="chg-20009959-tasks.html">CHG-20009959</a> &nbsp;<span class="badge badge-yellow">⚠ Gelb</span></div>
+      <div><a href="https://askit.servity-cloud.de/servity/ticket/CHG-20009959" target="_blank" rel="noopener">CHG-20009959</a> &nbsp;<span class="badge badge-yellow">⚠ Gelb</span></div>
       <div class="sum-meta">MKN: Annweiler – neue Praxis bleibt extern</div>
       <div class="sum-stats">
         Tasks: <strong>12 / 22</strong> abgeschlossen (55 %) &nbsp;·&nbsp; Offen: 7 &nbsp;·&nbsp; Zurückgestellt: 3<br>
@@ -527,7 +659,7 @@
       </div>
     </div>
     <div class="sum-card">
-      <div><a href="chg-20017717-tasks.html">CHG-20017717</a> &nbsp;<span class="badge badge-red">⛔ Rot</span></div>
+      <div><a href="https://askit.servity-cloud.de/servity/ticket/CHG-20017717" target="_blank" rel="noopener">CHG-20017717</a> &nbsp;<span class="badge badge-red">⛔ Rot</span></div>
       <div class="sum-meta">[MRA/RPUMV]: Einrichtung Infrastruktur MVZ Radeberg</div>
       <div class="sum-stats">
         Tasks: <strong>4 / 10</strong> abgeschlossen (40 %) &nbsp;·&nbsp; Offen: 6<br>
@@ -600,7 +732,7 @@
       <!-- CHG-20009959 -->
       <div class="g-row">
         <div class="g-lbl">
-          <div><span class="g-dot dot-yellow"></span><a href="chg-20009959-tasks.html">CHG-20009959</a></div>
+          <div><span class="g-dot dot-yellow"></span><a href="https://askit.servity-cloud.de/servity/ticket/CHG-20009959" target="_blank" rel="noopener">CHG-20009959</a></div>
           <div class="s">MKN: Annweiler &nbsp;·&nbsp; 05.03. – 03.08.2026</div>
         </div>
         <div class="g-track">
@@ -622,7 +754,7 @@
       <!-- CHG-20017717 -->
       <div class="g-row">
         <div class="g-lbl">
-          <div><span class="g-dot dot-red"></span><a href="chg-20017717-tasks.html">CHG-20017717</a></div>
+          <div><span class="g-dot dot-red"></span><a href="https://askit.servity-cloud.de/servity/ticket/CHG-20017717" target="_blank" rel="noopener">CHG-20017717</a></div>
           <div class="s">[MRA/RPUMV]: Radeberg &nbsp;·&nbsp; 01.04. – 07.07.2026</div>
         </div>
         <div class="g-track">
@@ -653,7 +785,7 @@
   <!-- Summary Cards -->
   <div class="summary-row">
     <div class="sum-card">
-      <div><a href="chg-20009959-tasks.html">CHG-20009959</a> &nbsp;<span class="badge badge-yellow">⚠ Gelb</span></div>
+      <div><a href="https://askit.servity-cloud.de/servity/ticket/CHG-20009959" target="_blank" rel="noopener">CHG-20009959</a> &nbsp;<span class="badge badge-yellow">⚠ Gelb</span></div>
       <div class="sum-meta">MKN: Annweiler – neue Praxis bleibt extern</div>
       <div class="sum-stats">
         Tasks: <strong>12 / 22</strong> (55 %) &nbsp;·&nbsp; Offen: 7 &nbsp;·&nbsp; Zurückgestellt: 3<br>
@@ -666,7 +798,7 @@
       </div>
     </div>
     <div class="sum-card">
-      <div><a href="chg-20017717-tasks.html">CHG-20017717</a> &nbsp;<span class="badge badge-red">⛔ Rot</span></div>
+      <div><a href="https://askit.servity-cloud.de/servity/ticket/CHG-20017717" target="_blank" rel="noopener">CHG-20017717</a> &nbsp;<span class="badge badge-red">⛔ Rot</span></div>
       <div class="sum-meta">[MRA/RPUMV]: Einrichtung Infrastruktur MVZ Radeberg</div>
       <div class="sum-stats">
         Tasks: <strong>4 / 10</strong> (40 %) &nbsp;·&nbsp; Offen: 6<br>
@@ -741,6 +873,7 @@
     <div class="kpi"><div class="kpi-label">Offene Tasks</div><div class="kpi-value" id="uc2-kpi-offene-tasks">2534</div><div class="kpi-sub" id="uc2-kpi-tasks-sub">von 4573 gesamt</div></div>
   </div>
   <div class="dash-card">
+    <div class="uc2-filter-badge" id="uc2-filter-badge"></div>
     <div class="chart-grid">
       <div class="chart-card">
         <div class="chart-title">Offene Changes nach Label</div>
@@ -823,43 +956,43 @@
       <thead><tr><th>Change</th><th>Risiko</th><th>Auswirkung</th><th>Ampel</th></tr></thead>
       <tbody>
         <tr>
-          <td><a href="chg-20009959-tasks.html" style="color:#60a5fa">CHG-20009959</a></td>
+          <td><a href="https://askit.servity-cloud.de/servity/ticket/CHG-20009959" target="_blank" rel="noopener" style="color:#60a5fa">CHG-20009959</a></td>
           <td>IAM blockiert durch fehlende AD-OU</td>
           <td>Kein Login für Praxis-Mitarbeiter</td>
           <td><span class="badge badge-red">⛔ Kritisch</span></td>
         </tr>
         <tr>
-          <td><a href="chg-20009959-tasks.html" style="color:#60a5fa">CHG-20009959</a></td>
+          <td><a href="https://askit.servity-cloud.de/servity/ticket/CHG-20009959" target="_blank" rel="noopener" style="color:#60a5fa">CHG-20009959</a></td>
           <td>Switch-Konfiguration (Fleischer) – keine Antwort</td>
           <td>APs können nicht provisioniert werden</td>
           <td><span class="badge badge-red">⛔ Kritisch</span></td>
         </tr>
         <tr>
-          <td><a href="chg-20009959-tasks.html" style="color:#60a5fa">CHG-20009959</a></td>
+          <td><a href="https://askit.servity-cloud.de/servity/ticket/CHG-20009959" target="_blank" rel="noopener" style="color:#60a5fa">CHG-20009959</a></td>
           <td>TDN-Leitung Versatel in Klärung</td>
           <td>Laut Versatel vor GoLive gesichert</td>
           <td><span class="badge badge-yellow">⚠ Achtung</span></td>
         </tr>
         <tr>
-          <td><a href="chg-20009959-tasks.html" style="color:#60a5fa">CHG-20009959</a></td>
+          <td><a href="https://askit.servity-cloud.de/servity/ticket/CHG-20009959" target="_blank" rel="noopener" style="color:#60a5fa">CHG-20009959</a></td>
           <td>4 Einzel-Deadlines überschritten</td>
           <td>Verzögerung Gesamtprojekt</td>
           <td><span class="badge badge-yellow">⚠ Achtung</span></td>
         </tr>
         <tr>
-          <td><a href="chg-20017717-tasks.html" style="color:#60a5fa">CHG-20017717</a></td>
+          <td><a href="https://askit.servity-cloud.de/servity/ticket/CHG-20017717" target="_blank" rel="noopener" style="color:#60a5fa">CHG-20017717</a></td>
           <td>Switch-Konfiguration – Deadline 24.06.</td>
           <td>Temporäre Switche müssen vor Raumprüfung weg</td>
           <td><span class="badge badge-red">⛔ Kritisch</span></td>
         </tr>
         <tr>
-          <td><a href="chg-20017717-tasks.html" style="color:#60a5fa">CHG-20017717</a></td>
+          <td><a href="https://askit.servity-cloud.de/servity/ticket/CHG-20017717" target="_blank" rel="noopener" style="color:#60a5fa">CHG-20017717</a></td>
           <td>4 Tasks ohne Bearbeiter zugewiesen</td>
           <td>Kein Fortschritt möglich</td>
           <td><span class="badge badge-red">⛔ Kritisch</span></td>
         </tr>
         <tr>
-          <td><a href="chg-20017717-tasks.html" style="color:#60a5fa">CHG-20017717</a></td>
+          <td><a href="https://askit.servity-cloud.de/servity/ticket/CHG-20017717" target="_blank" rel="noopener" style="color:#60a5fa">CHG-20017717</a></td>
           <td>GoLive in 13 Tagen (07.07.2026)</td>
           <td>60% Tasks noch offen</td>
           <td><span class="badge badge-red">⛔ Kritisch</span></td>
@@ -869,14 +1002,99 @@
   </div>
 </div>
 
+<!-- ─── SCHNITTSTELLEN: A2C ──────────────────────── -->
+<div class="view" id="d-a2c" style="display:none">
+  <div class="dash-card">
+    <div class="dash-card-title">A2C – Servity-Export, MSSQL-Import &amp; Confluence-Sync</div>
+    <div style="font-size:0.74rem;color:#6b7280;line-height:1.5;margin-bottom:1rem">
+      A2C ist ein eigenständiges Python-Tool (kein Web-Programm), das als geplante
+      Aufgabe unter einem Servicekonto läuft: lädt den Servity-Export herunter,
+      importiert ihn nach MSSQL und aktualisiert die Confluence-Projektübersicht.
+      Diese Seite steuert A2C nicht, sondern zeigt nur – über den bereits
+      laufenden Bridge-Dienst (iap_dashboard_api.py) – den zuletzt von A2C
+      geschriebenen Laufstatus an. Der Ordner kann lokal oder per Netzwerkpfad
+      (UNC, z.B. \\server\freigabe\A2C) angegeben werden, je nachdem, wo der
+      Bridge-Dienst später läuft.
+    </div>
+
+    <label style="font-size:0.7rem;color:#9ca3af;text-transform:uppercase;letter-spacing:0.05em">A2C-Programmordner</label>
+    <div style="display:flex;gap:0.6rem;margin-top:0.35rem;flex-wrap:wrap">
+      <input type="text" id="a2c-path" placeholder="C:\Beispielpfad"
+             style="flex:1;min-width:260px;background:#111827;border:1px solid #1f2937;color:#e0e0e0;border-radius:6px;padding:0.5rem 0.65rem;font-size:0.85rem;font-family:inherit">
+      <button class="modal-btn secondary" onclick="saveA2cConfig()">Pfad speichern</button>
+    </div>
+    <div class="modal-status" id="a2c-config-status"></div>
+    <div style="font-size:0.75rem;color:#6b7280;margin-top:0.4rem" id="a2c-saved-path-display">Lädt…</div>
+  </div>
+
+  <div class="dash-card">
+    <div class="dash-card-title">Lauf manuell starten</div>
+    <div style="font-size:0.74rem;color:#6b7280;line-height:1.5;margin-bottom:0.75rem">
+      Startet A2C genauso wie die geplante Aufgabe (headless, ohne Fenster) – das ist
+      ein echter Lauf: lädt echte Daten von Servity herunter und schreibt sie in die
+      Datenbank (ggf. auch Confluence-Update/E-Mail, je nach A2C-Konfiguration).
+    </div>
+    <div style="display:flex;gap:0.6rem;flex-wrap:wrap;align-items:center">
+      <select id="a2c-run-mode" style="background:#111827;border:1px solid #1f2937;color:#e0e0e0;border-radius:6px;padding:0.5rem 0.65rem;font-size:0.85rem;font-family:inherit">
+        <option value="all">Alles (Download + Verarbeitung + Confluence)</option>
+        <option value="download">Nur Download</option>
+        <option value="verarbeite">Nur Verarbeitung + MSSQL-Import</option>
+        <option value="confluence">Nur Confluence-Sync</option>
+      </select>
+      <button class="modal-btn primary" onclick="runA2cJob()">▶ Jetzt Lauf starten</button>
+      <button class="modal-btn secondary" onclick="startA2cGui()">🖥️ A2C-Programmfenster öffnen</button>
+    </div>
+    <div class="modal-status" id="a2c-run-status"></div>
+    <div style="font-size:0.7rem;color:#4b5563;line-height:1.5;margin-top:0.3rem">
+      "A2C-Programmfenster öffnen" startet A2C als eigenständiges Programm mit seiner
+      normalen Oberfläche (die GUI, die es bereits als Desktop-Anwendung gibt) – nicht
+      eingebettet, kein Live-Status hier im Dashboard. Funktioniert nur, wenn der
+      Bridge-Dienst selbst in einer sichtbaren Desktop-Sitzung läuft, nicht als
+      unsichtbare geplante Aufgabe/Dienst.
+    </div>
+  </div>
+
+  <div class="dash-card">
+    <div class="dash-card-title" style="display:flex;align-items:center;justify-content:space-between;gap:0.6rem">
+      <span>Letzter Lauf</span>
+      <button class="modal-btn secondary" style="font-size:0.72rem;padding:0.35rem 0.7rem" onclick="refreshA2cStatus()">↻ Status aktualisieren</button>
+    </div>
+    <div id="a2c-status-box" style="font-size:0.85rem;color:#9ca3af">Noch nicht abgerufen.</div>
+  </div>
+
+  <div class="dash-card" id="a2c-log-card" style="display:none">
+    <div class="dash-card-title">Log-Ausschnitt (letzte Zeilen)</div>
+    <pre id="a2c-log-tail" style="background:#0d1424;border:1px solid #1f2937;border-radius:6px;padding:0.75rem;font-size:0.72rem;line-height:1.5;color:#9ca3af;max-height:320px;overflow:auto;white-space:pre-wrap;word-break:break-word"></pre>
+  </div>
+</div>
+
 </div><!-- /content -->
 
 <script>
+// ══════════════════════════════════════════════════
+//  DESIGN-/FRONTEND-VERSION (statisch, im HTML selbst eingebettet)
+// ══════════════════════════════════════════════════
+// Bewusst NICHT vom Bridge-Dienst abgefragt (siehe loadBuildVersion() weiter
+// unten fuer dessen separate Backend-Version) - Frontend (diese HTML-Datei)
+// und Backend (iap_dashboard_api.py) werden nicht immer gemeinsam
+// aktualisiert/deployt. Diese Konstante beschreibt daher IMMER genau den
+// Code-Stand der gerade geoeffneten Datei selbst, unabhaengig davon, welcher
+// Bridge-Dienst gerade dahinter haengt (oder ob ueberhaupt einer erreichbar
+// ist). Manuell bei jeder inhaltlichen Aenderung an dieser Datei hochzaehlen -
+// idealerweise passend zum GitHub-Commit/Tag, der diese Aenderung enthaelt.
+const DASHBOARD_DESIGN_VERSION = '2026-07-14.1';
+
 // ══════════════════════════════════════════════════
 //  DB-VERBINDUNG (Bridge-Dienst iap_dashboard_api.py)
 // ══════════════════════════════════════════════════
 const CONN_STORAGE_KEY = 'iap_dashboard_conn';
 let liveUC2Data = null;
+
+// Sprungziel ins Ticketsystem fuer eine ChangeID, z.B. CHG-20016200 ->
+// https://askit.servity-cloud.de/servity/ticket/CHG-20016200
+function chgTicketUrl(changeId) {
+  return `https://askit.servity-cloud.de/servity/ticket/${changeId}`;
+}
 
 function loadConnConfig() {
   const raw = localStorage.getItem(CONN_STORAGE_KEY);
@@ -891,6 +1109,7 @@ function apiBase(cfg) {
 }
 
 function openConnModal() {
+  if (!isAdminUnlocked()) { requireAdminUnlock(openConnModal); return; }
   const cfg = loadConnConfig();
   document.getElementById('cf-api').value      = cfg.api || '';
   document.getElementById('cf-server').value   = cfg.server || '';
@@ -898,6 +1117,7 @@ function openConnModal() {
   document.getElementById('cf-auth').value     = cfg.authType || 'windows';
   document.getElementById('cf-username').value = cfg.username || '';
   document.getElementById('cf-password').value = '';
+  document.getElementById('cf-apikey').value   = cfg.apiKey || '';
   toggleAuthFields();
   const statusEl = document.getElementById('cf-status');
   statusEl.textContent = '';
@@ -907,6 +1127,157 @@ function openConnModal() {
 function closeConnModal() {
   document.getElementById('conn-modal-overlay').classList.remove('open');
 }
+// API-Key steht per Default maskiert (type="password") im Feld, damit er nicht
+// jedem, der den Verbindungsdialog oeffnet oder ueber die Schulter schaut, im
+// Klartext angezeigt wird - der Knopf daneben blendet ihn bei Bedarf kurz ein.
+function toggleApiKeyVisibility() {
+  const el = document.getElementById('cf-apikey');
+  el.type = (el.type === 'password') ? 'text' : 'password';
+}
+function toggleApiKeyNewVisibility() {
+  const el = document.getElementById('cf-apikey-new');
+  el.type = (el.type === 'password') ? 'text' : 'password';
+}
+// Rotiert den serverseitig gueltigen API-Key - bewusst getrennt von saveConnection()
+// (das nur noch lokal speichert): braucht als Nachweis den AKTUELL gueltigen
+// Schluessel (Feld "cf-apikey" oben im Dialog), nicht irgendeinen zufaellig lokal
+// zwischengespeicherten "alten" Wert - das war vorher die Falle, wenn ein neuer
+// Browser/Rechner einen bereits geschuetzten Bridge-Dienst zum ersten Mal
+// anspricht: der kannte den gueltigen Schluessel lokal noch gar nicht, obwohl der
+// eingegebene Wert inhaltlich schon richtig war.
+async function rotateApiKey() {
+  const cfg = loadConnConfig();
+  const currentKey = document.getElementById('cf-apikey').value.trim();
+  const newKey = document.getElementById('cf-apikey-new').value.trim();
+  const statusEl = document.getElementById('cf-apikey-rotate-status');
+  statusEl.textContent = 'Ändere…';
+  statusEl.className = 'modal-status';
+  try {
+    const res = await fetch(apiBase(cfg) + '/api/security-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-API-Key': currentKey },
+      body: JSON.stringify({ apiKey: newKey })
+    });
+    const data = await res.json();
+    if (data.success) {
+      statusEl.textContent = '✓ Server-Schlüssel geändert.';
+      statusEl.className = 'modal-status ok';
+      document.getElementById('cf-apikey').value = newKey;
+      document.getElementById('cf-apikey-new').value = '';
+      saveConnConfigLocal(readModalConfig());
+    } else {
+      statusEl.textContent = '✗ ' + (data.message || 'Fehlgeschlagen (falscher aktueller Schlüssel?).');
+      statusEl.className = 'modal-status err';
+    }
+  } catch (e) {
+    statusEl.textContent = '✗ Bridge-Dienst nicht erreichbar unter ' + apiBase(cfg);
+    statusEl.className = 'modal-status err';
+  }
+}
+
+// ══════════════════════════════════════════════════
+//  ADMIN-PASSWORTSPERRE (Schnittstellen / Verbindung / Deploy)
+// ══════════════════════════════════════════════════
+// Rein browserseitige Sichtsperre (sessionStorage - gilt bis der Tab/Browser
+// geschlossen wird), KEIN Ersatz fuer echte Zugriffskontrolle: die eigentlichen
+// schreibenden Endpunkte bleiben zusaetzlich durch den API-Key (siehe
+// authHeaders()) geschuetzt. Das Passwort selbst wird serverseitig nur als Hash
+// abgelegt (siehe /api/admin-set-password im Backend).
+const ADMIN_UNLOCK_KEY = 'iap_admin_unlocked';
+let pendingUnlockAction = null;
+
+function isAdminUnlocked() {
+  return sessionStorage.getItem(ADMIN_UNLOCK_KEY) === '1';
+}
+
+// Prueft (nur falls noch nicht in dieser Session entsperrt), ob ueberhaupt ein
+// Admin-Passwort konfiguriert ist - falls nicht, wird direkt freigeschaltet und
+// "action" laeuft sofort. Falls ja, wird "action" gemerkt und erst nach
+// erfolgreicher Passworteingabe (siehe submitAdminUnlock()) ausgefuehrt.
+async function requireAdminUnlock(action) {
+  if (isAdminUnlocked()) { action(); return; }
+  const cfg = loadConnConfig();
+  try {
+    const res = await fetch(apiBase(cfg) + '/api/admin-auth-status');
+    const data = await res.json();
+    if (!data.configured) {
+      sessionStorage.setItem(ADMIN_UNLOCK_KEY, '1');
+      action();
+      return;
+    }
+  } catch (e) {
+    // Bridge-Dienst nicht erreichbar - im Zweifel trotzdem die Passwortabfrage
+    // zeigen, statt den Bereich einfach freizugeben.
+  }
+  pendingUnlockAction = action;
+  const statusEl = document.getElementById('admin-unlock-status');
+  statusEl.textContent = '';
+  statusEl.className = 'modal-status';
+  document.getElementById('admin-unlock-pw').value = '';
+  document.getElementById('admin-unlock-modal-overlay').classList.add('open');
+}
+function closeAdminUnlockModal() {
+  document.getElementById('admin-unlock-modal-overlay').classList.remove('open');
+  pendingUnlockAction = null;
+}
+async function submitAdminUnlock() {
+  const cfg = loadConnConfig();
+  const pw = document.getElementById('admin-unlock-pw').value;
+  const statusEl = document.getElementById('admin-unlock-status');
+  statusEl.textContent = 'Prüfe…';
+  statusEl.className = 'modal-status';
+  try {
+    const res = await fetch(apiBase(cfg) + '/api/admin-unlock', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pw })
+    });
+    const data = await res.json();
+    if (data.success) {
+      sessionStorage.setItem(ADMIN_UNLOCK_KEY, '1');
+      document.getElementById('admin-unlock-modal-overlay').classList.remove('open');
+      const action = pendingUnlockAction;
+      pendingUnlockAction = null;
+      if (action) action();
+    } else {
+      statusEl.textContent = '✗ ' + (data.message || 'Falsches Passwort.');
+      statusEl.className = 'modal-status err';
+    }
+  } catch (e) {
+    statusEl.textContent = '✗ Bridge-Dienst nicht erreichbar unter ' + apiBase(cfg);
+    statusEl.className = 'modal-status err';
+  }
+}
+function toggleAdminPwVisibility() {
+  const el = document.getElementById('cf-adminpw-new');
+  el.type = (el.type === 'password') ? 'text' : 'password';
+}
+// Setzt/aendert/entfernt das Admin-Passwort - per API-Key geschuetzt (siehe
+// api_set_admin_password() im Backend), NICHT per aktuellem Admin-Passwort -
+// das ist bewusst der Not-Reset waehrend der Entwicklungsphase.
+async function setAdminPassword() {
+  const cfg = loadConnConfig();
+  const pw = document.getElementById('cf-adminpw-new').value;
+  const statusEl = document.getElementById('cf-adminpw-status');
+  statusEl.textContent = 'Speichere…';
+  statusEl.className = 'modal-status';
+  try {
+    const res = await fetch(apiBase(cfg) + '/api/admin-set-password', {
+      method: 'POST', headers: authHeaders(), body: JSON.stringify({ password: pw })
+    });
+    const data = await res.json();
+    if (data.success) {
+      statusEl.textContent = '✓ ' + (data.message || 'Gespeichert.');
+      statusEl.className = 'modal-status ok';
+      document.getElementById('cf-adminpw-new').value = '';
+    } else {
+      statusEl.textContent = '✗ ' + (data.message || 'Fehlgeschlagen.');
+      statusEl.className = 'modal-status err';
+    }
+  } catch (e) {
+    statusEl.textContent = '✗ Bridge-Dienst nicht erreichbar unter ' + apiBase(cfg);
+    statusEl.className = 'modal-status err';
+  }
+}
+
 function toggleAuthFields() {
   const isSql = document.getElementById('cf-auth').value === 'sql';
   document.getElementById('cf-sql-fields').style.display = isSql ? 'block' : 'none';
@@ -918,8 +1289,17 @@ function readModalConfig() {
     database: document.getElementById('cf-database').value.trim(),
     authType: document.getElementById('cf-auth').value,
     username: document.getElementById('cf-username').value.trim(),
-    password: document.getElementById('cf-password').value
+    password: document.getElementById('cf-password').value,
+    apiKey:   document.getElementById('cf-apikey').value.trim()
   };
+}
+// Header fuer die aendernden Endpunkte (Config/Deploy/Security-Config) - schickt
+// den aktuell GESPEICHERTEN (nicht den evtl. gerade im Modal getippten, noch
+// nicht gespeicherten) API-Key mit, da genau dieser Schluessel serverseitig
+// aktuell erwartet wird, solange einer konfiguriert ist.
+function authHeaders() {
+  const cfg = loadConnConfig();
+  return { 'Content-Type': 'application/json', 'X-API-Key': cfg.apiKey || '' };
 }
 async function testConnection() {
   const cfg = readModalConfig();
@@ -928,7 +1308,7 @@ async function testConnection() {
   statusEl.className = 'modal-status';
   try {
     const res = await fetch(apiBase(cfg) + '/api/config', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cfg)
+      method: 'POST', headers: authHeaders(), body: JSON.stringify(cfg)
     });
     const data = await res.json();
     if (data.success) {
@@ -943,6 +1323,16 @@ async function testConnection() {
     statusEl.className = 'modal-status err';
   }
 }
+// Speichert die Verbindungseinstellungen NUR lokal in diesem Browser (inkl. des
+// API-Key-Feldes - das legt bloss fest, welchen Schluessel DIESER Browser ab
+// jetzt mitschickt). Das eigentliche AENDERN des serverseitig gueltigen
+// Schluessels ist bewusst eine eigene, explizite Aktion (siehe rotateApiKey())
+// mit getrenntem "aktueller/neuer Schluessel"-Nachweis - vorher fuehrte das
+// Vermischen beider Dinge hier zu einer verwirrenden Sackgasse: ein Browser, der
+// einen bereits gueltigen Schluessel zum ERSTEN MAL eintraegt (z.B. weil er ihm
+// mitgeteilt wurde), hatte lokal noch keinen "alten" Wert gespeichert und wurde
+// deshalb serverseitig abgelehnt, obwohl der eingegebene Wert inhaltlich schon
+// richtig war.
 function saveConnection() {
   const cfg = readModalConfig();
   saveConnConfigLocal(cfg);
@@ -950,6 +1340,325 @@ function saveConnection() {
   refreshConnectionStatus();
   loadLiveData();
 }
+// ══════════════════════════════════════════════════
+//  IIS/Webserver-Deploy (🚀 Deploy-Knopf im Header)
+// ══════════════════════════════════════════════════
+// Der Browser kann selbst keine Dateien auf dem Server schreiben - der Klick
+// ruft daher den ohnehin schon laufenden Bridge-Dienst (iap_dashboard_api.py)
+// auf, der die aktuelle IAP_Dashboard_MAIN.html in den konfigurierten
+// Zielordner kopiert (lokal oder per UNC-Netzwerkpfad auf einen anderen
+// Server). Nutzt dieselbe API-Basis-URL wie die DB-Verbindung (Verbindung-
+// Modal), damit auch ein entfernter Bridge-Dienst angesprochen werden kann.
+// deployPendingHash: null solange noch keine Bestaetigung angezeigt wurde.
+// Erster Klick auf "Jetzt veroeffentlichen" holt nur Groesse/Datum/Pruefsumme
+// der aktuellen Datei (/api/deploy-info) zur Anzeige und merkt sich die
+// Pruefsumme hier; erst der zweite Klick (Knopf zeigt dann "Bestaetigen &
+// veroeffentlichen") loest den eigentlichen Deploy aus und schickt die
+// gemerkte Pruefsumme mit, damit der Server pruefen kann, ob sich die Datei
+// zwischenzeitlich veraendert hat.
+let deployPendingHash = null;
+
+function resetDeployConfirmState() {
+  deployPendingHash = null;
+  const btn = document.getElementById('df-deploy-btn');
+  if (btn) btn.textContent = 'Jetzt veröffentlichen';
+}
+function openDeployModal() {
+  if (!isAdminUnlocked()) { requireAdminUnlock(openDeployModal); return; }
+  const statusEl = document.getElementById('df-status');
+  statusEl.textContent = '';
+  statusEl.className = 'modal-status';
+  resetDeployConfirmState();
+  document.getElementById('deploy-modal-overlay').classList.add('open');
+  loadDeployConfig();
+}
+function closeDeployModal() {
+  document.getElementById('deploy-modal-overlay').classList.remove('open');
+  resetDeployConfirmState();
+}
+async function loadDeployConfig() {
+  const cfg = loadConnConfig();
+  try {
+    const res = await fetch(apiBase(cfg) + '/api/deploy-config');
+    const data = await res.json();
+    document.getElementById('df-target').value = data.targetPath || '';
+  } catch (e) {
+    document.getElementById('df-target').value = document.getElementById('df-target').value || 'C:\\inetpub\\wwwroot\\';
+  }
+}
+async function saveDeployConfig() {
+  const cfg = loadConnConfig();
+  const targetPath = document.getElementById('df-target').value.trim();
+  const statusEl = document.getElementById('df-status');
+  resetDeployConfirmState();
+  statusEl.textContent = 'Speichere…';
+  statusEl.className = 'modal-status';
+  try {
+    const res = await fetch(apiBase(cfg) + '/api/deploy-config', {
+      method: 'POST', headers: authHeaders(), body: JSON.stringify({ targetPath })
+    });
+    const data = await res.json();
+    statusEl.textContent = (data.success ? '✓ ' : '✗ ') + data.message;
+    statusEl.className = 'modal-status ' + (data.success ? 'ok' : 'err');
+  } catch (e) {
+    statusEl.textContent = '✗ Bridge-Dienst nicht erreichbar unter ' + apiBase(cfg);
+    statusEl.className = 'modal-status err';
+  }
+}
+async function runDeploy() {
+  const cfg = loadConnConfig();
+  const targetPath = document.getElementById('df-target').value.trim();
+  const statusEl = document.getElementById('df-status');
+  const btn = document.getElementById('df-deploy-btn');
+
+  // Phase 1: noch keine Bestaetigung angezeigt -> nur Versions-/Pruefsumme
+  // der aktuell lokal liegenden Datei abrufen und anzeigen, nichts kopieren.
+  if (!deployPendingHash) {
+    statusEl.textContent = 'Prüfe aktuelle Version…';
+    statusEl.className = 'modal-status';
+    try {
+      const res = await fetch(apiBase(cfg) + '/api/deploy-info');
+      const data = await res.json();
+      if (!data.available) {
+        statusEl.textContent = '✗ ' + (data.message || 'Datei nicht gefunden.');
+        statusEl.className = 'modal-status err';
+        return;
+      }
+      deployPendingHash = data.hash;
+      statusEl.textContent =
+        `Zu veröffentlichende Version: ${data.modified} · ${data.size.toLocaleString('de-DE')} Bytes · Prüfsumme ${data.hash}. ` +
+        `Bitte prüfen und erneut klicken, um wirklich zu veröffentlichen.`;
+      statusEl.className = 'modal-status';
+      if (btn) btn.textContent = 'Bestätigen & veröffentlichen';
+    } catch (e) {
+      statusEl.textContent = '✗ Bridge-Dienst nicht erreichbar unter ' + apiBase(cfg);
+      statusEl.className = 'modal-status err';
+    }
+    return;
+  }
+
+  // Phase 2: Bestaetigung erfolgt -> eigentlichen Deploy ausloesen, gemerkte
+  // Pruefsumme mitschicken, damit der Server eine Aenderung seit der
+  // Bestaetigung erkennen und ablehnen kann.
+  const expectedHash = deployPendingHash;
+  statusEl.textContent = 'Veröffentliche…';
+  statusEl.className = 'modal-status';
+  try {
+    const res = await fetch(apiBase(cfg) + '/api/deploy', {
+      method: 'POST', headers: authHeaders(), body: JSON.stringify({ targetPath, expectedHash })
+    });
+    const data = await res.json();
+    statusEl.textContent = (data.success ? '✓ ' : '✗ ') + data.message;
+    statusEl.className = 'modal-status ' + (data.success ? 'ok' : 'err');
+  } catch (e) {
+    statusEl.textContent = '✗ Bridge-Dienst nicht erreichbar unter ' + apiBase(cfg);
+    statusEl.className = 'modal-status err';
+  } finally {
+    resetDeployConfirmState();
+  }
+}
+
+// ══════════════════════════════════════════════════
+//  SCHNITTSTELLEN: A2C (Servity-Export/MSSQL/Confluence-Sync)
+// ══════════════════════════════════════════════════
+// A2C ist ein separates, eigenstaendiges Python-Tool ohne eigene Web-Oberflaeche
+// (geplante Aufgabe unter einem Servicekonto, siehe dessen docs/Betrieb_Start.md).
+// Es wird von hier aus NICHT gesteuert oder gestartet - dieser Bereich liest nur
+// (ueber den ohnehin schon laufenden Bridge-Dienst) die von A2C selbst
+// geschriebene last_run_status.json sowie einen kurzen Log-Ausschnitt aus dem
+// unten konfigurierten Ordner (lokal oder per UNC-Netzwerkpfad).
+// Zeigt den tatsaechlich in a2c_config.json gespeicherten Pfad an - unabhaengig
+// vom Eingabefeld (das der Nutzer gerade bearbeiten koennte, ohne schon zu
+// speichern). So ist immer klar erkennbar, was aktuell wirklich hinterlegt ist,
+// auch wenn das Eingabefeld selbst durch einen erneuten Tab-Wechsel/Reload kurz
+// leer erscheint, bevor die Konfiguration nachgeladen wurde.
+function a2cUpdateSavedPathDisplay(basePath) {
+  const el = document.getElementById('a2c-saved-path-display');
+  if (!el) return;
+  el.textContent = basePath
+    ? ('Aktuell gespeicherter Pfad: ' + basePath)
+    : 'Aktuell kein Pfad gespeichert';
+}
+
+async function loadA2cConfig() {
+  const cfg = loadConnConfig();
+  try {
+    const res = await fetch(apiBase(cfg) + '/api/a2c-config');
+    const data = await res.json();
+    document.getElementById('a2c-path').value = data.basePath || '';
+    a2cUpdateSavedPathDisplay(data.basePath || '');
+  } catch (e) {
+    // Bridge-Dienst nicht erreichbar - Feld bleibt, wie es ist (kein Fehler-Overlay
+    // hier, das uebernimmt refreshA2cStatus()).
+    a2cUpdateSavedPathDisplay('');
+    document.getElementById('a2c-saved-path-display').textContent = 'Bridge-Dienst nicht erreichbar - Pfad konnte nicht abgerufen werden.';
+  }
+}
+
+async function saveA2cConfig() {
+  const cfg = loadConnConfig();
+  const basePath = document.getElementById('a2c-path').value.trim();
+  const statusEl = document.getElementById('a2c-config-status');
+  statusEl.textContent = 'Speichere…';
+  statusEl.className = 'modal-status';
+  try {
+    const res = await fetch(apiBase(cfg) + '/api/a2c-config', {
+      method: 'POST', headers: authHeaders(), body: JSON.stringify({ basePath })
+    });
+    const data = await res.json();
+    statusEl.textContent = (data.success ? '✓ ' : '✗ ') + data.message;
+    statusEl.className = 'modal-status ' + (data.success ? 'ok' : 'err');
+    if (data.success) {
+      a2cUpdateSavedPathDisplay(basePath);
+      refreshA2cStatus();
+    }
+  } catch (e) {
+    statusEl.textContent = '✗ Bridge-Dienst nicht erreichbar unter ' + apiBase(cfg);
+    statusEl.className = 'modal-status err';
+  }
+}
+
+function a2cFmtTimestamp(iso) {
+  if (!iso) return '–';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  return String(d.getDate()).padStart(2,'0') + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + d.getFullYear() +
+         ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+}
+
+// Live-Aktualisierung, solange ein von hier gestarteter A2C-Lauf noch aktiv ist -
+// der Browser kann das laufende Programm nicht einbetten, aber so bekommt man im
+// Dashboard automatisch mit, wenn sich der Status aendert (kein manuelles
+// "Aktualisieren" noetig, waehrend man wartet).
+let a2cPollTimer = null;
+function stopA2cPolling() {
+  if (a2cPollTimer) { clearInterval(a2cPollTimer); a2cPollTimer = null; }
+}
+function startA2cPollingIfNeeded() {
+  if (a2cPollTimer) return;
+  a2cPollTimer = setInterval(() => {
+    const view = document.getElementById('d-a2c');
+    if (!view || view.style.display === 'none') { stopA2cPolling(); return; }
+    refreshA2cStatus();
+  }, 4000);
+}
+
+async function runA2cJob() {
+  const cfg = loadConnConfig();
+  const mode = document.getElementById('a2c-run-mode').value;
+  const modeLabel = document.getElementById('a2c-run-mode').selectedOptions[0].textContent;
+  const statusEl = document.getElementById('a2c-run-status');
+
+  const confirmed = confirm(
+    `Wirklich jetzt einen echten A2C-Lauf starten?\n\nModus: ${modeLabel}\n\n` +
+    `Das lädt echte Daten von Servity herunter und schreibt sie in die Datenbank ` +
+    `(ggf. auch Confluence-Update/E-Mail, je nach A2C-Konfiguration).`
+  );
+  if (!confirmed) return;
+
+  statusEl.textContent = 'Starte Lauf…';
+  statusEl.className = 'modal-status';
+  try {
+    const res = await fetch(apiBase(cfg) + '/api/a2c-run', {
+      method: 'POST', headers: authHeaders(), body: JSON.stringify({ mode })
+    });
+    const data = await res.json();
+    statusEl.textContent = (data.success ? '✓ ' : '✗ ') + data.message;
+    statusEl.className = 'modal-status ' + (data.success ? 'ok' : 'err');
+    refreshA2cStatus();
+  } catch (e) {
+    statusEl.textContent = '✗ Bridge-Dienst nicht erreichbar unter ' + apiBase(cfg);
+    statusEl.className = 'modal-status err';
+  }
+}
+
+// Startet A2C NICHT eingebettet - im Gegensatz zu runA2cJob() (headless, mit
+// Live-Status/Log hier im Dashboard) oeffnet dies A2C als normales Programm
+// (main.py ohne Modus-Argument = dessen GUI-Modus). Kein Polling, kein
+// Log-Tail - das laesst sich in der Natur der Sache nicht "einbetten".
+async function startA2cGui() {
+  const cfg = loadConnConfig();
+  const statusEl = document.getElementById('a2c-run-status');
+  statusEl.textContent = 'Starte…';
+  statusEl.className = 'modal-status';
+  try {
+    const res = await fetch(apiBase(cfg) + '/api/a2c-start-gui', {
+      method: 'POST', headers: authHeaders()
+    });
+    const data = await res.json();
+    statusEl.textContent = (data.success ? '✓ ' : '✗ ') + data.message;
+    statusEl.className = 'modal-status ' + (data.success ? 'ok' : 'err');
+  } catch (e) {
+    statusEl.textContent = '✗ Bridge-Dienst nicht erreichbar unter ' + apiBase(cfg);
+    statusEl.className = 'modal-status err';
+  }
+}
+
+async function refreshA2cStatus() {
+  const cfg = loadConnConfig();
+  const box = document.getElementById('a2c-status-box');
+  const logCard = document.getElementById('a2c-log-card');
+  const logTail = document.getElementById('a2c-log-tail');
+  box.style.color = '#9ca3af';
+  box.textContent = 'Lade Status…';
+  try {
+    const res = await fetch(apiBase(cfg) + '/api/a2c-status');
+    const data = await res.json();
+
+    const runningBanner = data.running
+      ? `<div style="color:#facc15;font-weight:600;margin-bottom:0.6rem">🔄 Lauf läuft gerade` +
+        (data.runningInfo ? ` (Modus: ${data.runningInfo.mode}, gestartet ${a2cFmtTimestamp(data.runningInfo.startedAt)})` : '') +
+        ` – aktualisiert automatisch alle paar Sekunden…</div>`
+      : '';
+
+    if (data.running) {
+      startA2cPollingIfNeeded();
+    } else {
+      stopA2cPolling();
+    }
+
+    if (!data.configured) {
+      box.innerHTML = runningBanner + 'Noch kein A2C-Ordner konfiguriert – bitte oben eintragen und speichern.';
+      logCard.style.display = 'none';
+      return;
+    }
+    if (!data.available) {
+      box.style.color = '#f87171';
+      box.innerHTML = runningBanner + '✗ ' + data.message;
+      logCard.style.display = 'none';
+      return;
+    }
+    if (!data.status) {
+      box.innerHTML = runningBanner + (data.message || 'Noch kein Lauf protokolliert.');
+    } else {
+      const s = data.status;
+      const okColor = s.success ? '#4ade80' : '#f87171';
+      const okIcon = s.success ? '✓ Erfolgreich' : '✗ Fehlgeschlagen';
+      box.innerHTML = runningBanner +
+        `<div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:0.5rem">` +
+        `<div><div style="font-size:0.68rem;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em">Zeitpunkt</div>` +
+        `<div>${a2cFmtTimestamp(s.timestamp)}</div></div>` +
+        `<div><div style="font-size:0.68rem;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em">Modus</div>` +
+        `<div>${s.mode || '–'}</div></div>` +
+        `<div><div style="font-size:0.68rem;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em">Status</div>` +
+        `<div style="color:${okColor};font-weight:600">${okIcon}</div></div>` +
+        `</div>` +
+        `<div style="font-size:0.78rem;color:#d1d5db">${s.message || ''}</div>`;
+    }
+
+    if (data.logTail) {
+      logTail.textContent = data.logTail;
+      logCard.style.display = 'block';
+    } else {
+      logCard.style.display = 'none';
+    }
+  } catch (e) {
+    box.style.color = '#f87171';
+    box.textContent = '✗ Bridge-Dienst nicht erreichbar unter ' + apiBase(cfg);
+    logCard.style.display = 'none';
+  }
+}
+
 async function refreshConnectionStatus() {
   const cfg = loadConnConfig();
   const dot = document.getElementById('conn-dot');
@@ -991,13 +1700,8 @@ async function loadLiveData() {
       if (standEl) standEl.textContent = fmtDate(data.standDatum);
     }
     if (initialized['d-uc2']) {
-      initialized['d-uc2'] = false;
-      ['c-pie1','c-pie2','c-pie3','c-pie4'].forEach(id => {
-        const canvas = document.getElementById(id);
-        const existing = canvas && Chart.getChart(canvas);
-        if (existing) existing.destroy();
-      });
-      initCharts('d-uc2');
+      uc2Filter = null;
+      renderUC2Charts();
       updateUC2Kpis();
     }
   } catch (e) {
@@ -1013,12 +1717,12 @@ async function loadLiveData() {
     ucChangesData = data.changes;
     renderGantt1(true);
     renderUC3();
-    renderUC2TasksByLabel();
+    if (initialized['d-uc2']) renderUC2Charts();
   } catch (e) {
-    ucChangesData = null; // renderGantt1()/renderUC3()/renderUC2TasksByLabel() greifen dann auf DEMO_UC_CHANGES zurueck
+    ucChangesData = null; // renderGantt1()/renderUC3()/renderUC2Charts() greifen dann auf DEMO_UC_CHANGES zurueck
     renderGantt1(true);
     renderUC3();
-    renderUC2TasksByLabel();
+    if (initialized['d-uc2']) renderUC2Charts();
   }
 
   // UC4 – Historie
@@ -1047,9 +1751,42 @@ function updateUC2Kpis() {
   set('uc2-kpi-intern-sub', `von ${liveUC2Data.offeneChanges} offenen`);
 }
 
+// Zeigt DASHBOARD_DESIGN_VERSION an (siehe Definition ganz oben im Script) -
+// rein statisch/synchron, kein Fetch, funktioniert daher immer, auch ganz
+// ohne erreichbaren Bridge-Dienst. Das ist die verlaessliche Versionsangabe
+// fuer "welcher Design-/Code-Stand ist DAS hier gerade, das ich anschaue".
+function renderDesignVersion() {
+  const el = document.getElementById('dash-design-version');
+  if (el) el.textContent = `Design: ${DASHBOARD_DESIGN_VERSION}`;
+}
+
+// Zusaetzlich (separat!): welcher Dashboard-Datei-Stand liegt gerade lokal
+// beim BACKEND (Bridge-Dienst), erkannt ueber dieselbe Pruefsumme wie die
+// Deploy-Bestaetigung (siehe compute_dashboard_hash() im Backend). Das kann
+// vom Design-Stand oben abweichen, wenn Frontend und Backend nicht gemeinsam
+// aktualisiert wurden - genau das soll hier sichtbar werden, nicht verdeckt.
+async function loadBuildVersion() {
+  const cfg = loadConnConfig();
+  const el = document.getElementById('dash-build-version');
+  if (!el) return;
+  try {
+    const res = await fetch(apiBase(cfg) + '/api/deploy-info');
+    const data = await res.json();
+    if (data.available && data.hash) {
+      el.textContent = `Backend: ${data.hash} · ${data.modified}`;
+    } else {
+      el.textContent = '';
+    }
+  } catch (e) {
+    el.textContent = '';
+  }
+}
+
 window.addEventListener('DOMContentLoaded', () => {
+  renderDesignVersion();
   refreshConnectionStatus();
   loadLiveData();
+  loadBuildVersion();
 });
 
 // ══════════════════════════════════════════════════
@@ -1315,7 +2052,7 @@ function renderGantt1(resetScroll) {
   let tracksHtml = '';
 
   data.forEach(ch => {
-    labelsHtml += `<div class="gantt-label-row"><div class="gl-inner"><div class="gl-id"><span class="g-dot" style="background:${STATUS_COLORS_UC[ch.status] || '#6b7280'};flex-shrink:0"></span><span style="color:#60a5fa;font-size:0.74rem;font-weight:700">${ch.changeId}</span></div><div class="s">${(ch.description || '').slice(0, 46)}</div></div></div>`;
+    labelsHtml += `<div class="gantt-label-row"><div class="gl-inner"><div class="gl-id"><span class="g-dot" style="background:${STATUS_COLORS_UC[ch.status] || '#6b7280'};flex-shrink:0"></span><a class="chg-link" href="${chgTicketUrl(ch.changeId)}" target="_blank" rel="noopener" style="font-size:0.74rem;font-weight:700">${ch.changeId}</a></div><div class="s">${(ch.description || '').slice(0, 46)}</div></div></div>`;
 
     tracksHtml += '<div class="g-track-row"><div class="g-bg"></div>';
 
@@ -1473,7 +2210,7 @@ function renderUC3() {
       const openCount = Math.max(0, (ch.tasksTotal || 0) - (ch.tasksDone || 0));
       const color = STATUS_COLORS_UC[ch.status] || '#6b7280';
       return `<tr>
-        <td style="color:#60a5fa">${ch.changeId}</td>
+        <td><a class="chg-link" href="${chgTicketUrl(ch.changeId)}" target="_blank" rel="noopener">${ch.changeId}</a></td>
         <td style="color:#9ca3af">${(ch.description||'').slice(0,60)}</td>
         <td><span class="badge" style="background:${color}22;color:${color};border:1px solid ${color}">${ch.status||'–'}</span></td>
         <td>${openCount}</td>
@@ -1584,6 +2321,10 @@ function renderUC4() {
 let activeL1 = 'projekte';
 
 function switchL1(id, el) {
+  if (id === 'schnittstellen' && !isAdminUnlocked()) {
+    requireAdminUnlock(() => switchL1(id, el));
+    return;
+  }
   activeL1 = id;
 
   // Alle L1-Tabs
@@ -1593,6 +2334,7 @@ function switchL1(id, el) {
   // Sub-Nav sichtbar/unsichtbar
   document.getElementById('subnav-projekte').style.display   = (id === 'projekte')   ? 'flex' : 'none';
   document.getElementById('subnav-dashboards').style.display = (id === 'dashboards') ? 'flex' : 'none';
+  document.getElementById('subnav-schnittstellen').style.display = (id === 'schnittstellen') ? 'flex' : 'none';
 
   // Alle Views verstecken
   document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
@@ -1602,7 +2344,16 @@ function switchL1(id, el) {
   const activeSubTab = subNav.querySelector('.tab.active');
   if (activeSubTab) {
     const viewId = getViewId(id, subNav);
-    if (viewId) document.getElementById(viewId).style.display = 'block';
+    if (viewId) {
+      document.getElementById(viewId).style.display = 'block';
+      // initCharts() nachholen - bisher wurde das nur in switchL2() (Klick auf
+      // einen Unterreiter) aufgerufen. Hat ein L1-Bereich aber nur EINEN
+      // Unterreiter, der schon als aktiv markiert ist (z.B. "Schnittstellen" ->
+      // "A2C"), klickt man diesen Unterreiter nie extra an - ohne diesen Aufruf
+      // hier bliebe die Ansicht dann dauerhaft auf ihren statischen HTML-
+      // Platzhalterwerten stehen (z.B. "Lädt…"), auch nach mehrfachem Reload.
+      initCharts(viewId);
+    }
   }
 }
 
@@ -1679,83 +2430,231 @@ function resolveTeamColors(labels) {
   return colors;
 }
 
-// Pie 4 (UC2) – Anzahl der Changes pro Team (Change-Bearbeitergruppe, nicht Task-Ebene).
-// Kommt aus liveUC2Data.changesByTeam (Backend ermittelt die Spalte dynamisch, da die genaue
-// Schreibweise der Change-Bearbeitergruppe in der DB-View unbekannt ist). Falls das Backend
-// die Spalte nicht finden konnte (changesByTeamNote gesetzt) oder gar keine Live-Verbindung
-// besteht, wird ein Hinweis statt eines (falschen) Charts angezeigt.
-function renderUC2ChangesByTeam() {
-  const canvas = document.getElementById('c-pie4');
-  const noteEl = document.getElementById('uc2-pie4-note');
-  if (!canvas) return;
+// ══════════════════════════════════════════════════
+//  UC2 Cross-Filter (PowerBI-Stil)
+// ══════════════════════════════════════════════════
+// Klick auf ein Segment in einem der 4 Kuchencharts filtert die anderen drei
+// mit (Einzelauswahl mit Toggle: nochmaliger Klick auf dasselbe Segment, oder
+// der "Filter zurücksetzen"-Link, hebt den Filter wieder auf). Dafür werden
+// alle 4 Charts aus einer gemeinsamen Rohdaten-Ebene berechnet (ein Eintrag je
+// Task: Label Kunde/Intern, Team auf Task- und Change-Ebene, Open/Closed-
+// Status) statt aus 4 getrennten, bereits vor-aggregierten Backend-Werten -
+// nur so lassen sich alle Kombinationen (z.B. "Intern" anklicken -> wirkt sich
+// korrekt auf die Team-Charts aus) konsistent abbilden. Kommt aus
+// liveUC2Data.rawTasks (/api/usecase2). Ohne Live-Verbindung (Demo-Daten) gibt
+// es diese Rohdaten-Ebene nicht - die Charts bleiben dann wie bisher ohne
+// Klick-Interaktion (statische Demo-/Aggregatzahlen).
+let uc2Filter = null; // { dim: 'label' | 'taskTeam' | 'changeTeam', value: string } | null
 
-  let teamLabels = [], teamData = [], note = null;
-  if (liveUC2Data && Array.isArray(liveUC2Data.changesByTeam) && liveUC2Data.changesByTeam.length) {
-    teamLabels = liveUC2Data.changesByTeam.map(t => t.team);
-    teamData   = liveUC2Data.changesByTeam.map(t => t.count);
-  } else if (liveUC2Data && liveUC2Data.changesByTeamNote) {
-    note = liveUC2Data.changesByTeamNote;
-  } else if (!liveUC2Data) {
-    // Demo-Platzhalter (keine Live-Verbindung) - grobe Verteilung passend zu "Offene Tasks nach Team"
-    teamLabels = ['INF VMWare','INF Projektmanagement','INF Netzwerk','INF SQL Administration','INF IT Architektur','INF Domain Administration','INF Collaboration','INF Desktop Operation'];
-    teamData   = [9,7,5,4,2,2,1,1];
+function uc2FilterMatches(row) {
+  if (!uc2Filter) return true;
+  if (uc2Filter.dim === 'label')      return row.label === uc2Filter.value;
+  if (uc2Filter.dim === 'taskTeam')   return row.taskTeam === uc2Filter.value;
+  if (uc2Filter.dim === 'changeTeam') return row.changeTeam === uc2Filter.value;
+  return true;
+}
+function uc2ToggleFilter(dim, value) {
+  uc2Filter = (uc2Filter && uc2Filter.dim === dim && uc2Filter.value === value) ? null : { dim, value };
+  renderUC2Charts();
+}
+function uc2ClearFilter() {
+  uc2Filter = null;
+  renderUC2Charts();
+}
+function uc2FilterBadgeUpdate() {
+  const el = document.getElementById('uc2-filter-badge');
+  if (!el) return;
+  if (uc2Filter) {
+    el.classList.add('active');
+    el.innerHTML = `<span>🔎 Filter aktiv: <strong>${uc2Filter.value}</strong></span><a href="#" onclick="uc2ClearFilter();return false;">Filter zurücksetzen ✕</a>`;
+  } else {
+    el.classList.remove('active');
+    el.innerHTML = '';
   }
-  const infIdx = teamLabels.map((_, i) => i).filter(i => /INF/i.test(teamLabels[i]));
-  teamLabels = infIdx.map(i => teamLabels[i]);
-  teamData   = infIdx.map(i => teamData[i]);
-
-  const existing = Chart.getChart(canvas);
-  if (existing) existing.destroy();
-
-  if (!teamLabels.length) {
-    if (noteEl) {
-      noteEl.style.display = 'block';
-      noteEl.textContent = note || 'Keine Daten zu Changes je Team verfügbar.';
-    }
-    const legendEl = document.getElementById('cl-pie4');
-    if (legendEl) legendEl.innerHTML = '';
-    return;
-  }
-  if (noteEl) noteEl.style.display = 'none';
-
-  const teamColors = resolveTeamColors(teamLabels);
-  new Chart(canvas, {
-    type:'doughnut',
-    data:{ labels:teamLabels,
-           datasets:[{data:teamData, backgroundColor:teamColors, borderWidth:2, borderColor:'#16213e'}]},
-    options:{plugins:{legend:{display:false}}, cutout:'62%', responsive:true, maintainAspectRatio:false}
-  });
-  makeLegend('cl-pie4', teamLabels.map((l,i)=>`${l} (${teamData[i]})`), teamColors);
+}
+// Chart.js onClick-Fabrik: ermittelt das angeklickte Segment und toggelt den
+// Filter auf die zugehörige Dimension (dim) mit dem Label des Segments als Wert.
+function uc2OnClickHandler(dim) {
+  return function(evt, elements, chart) {
+    if (!elements || !elements.length) return;
+    uc2ToggleFilter(dim, chart.data.labels[elements[0].index]);
+  };
+}
+function uc2OnHoverHandler(evt, elements) {
+  evt.native.target.style.cursor = elements.length ? 'pointer' : 'default';
 }
 
-// Pie 3 (UC2) – Offene Tasks nach Label (Kunde vs. Intern; gleiche Klassifikation und Farben
-// wie bei "Offene Changes nach Label"). Wird je-Change aus ucChangesData berechnet, da
-// liveUC2Data diese Aufschluesselung nicht liefert. Eigenstaendige Funktion (statt Inline-Code
-// in initCharts), damit sie auch erneut aufgerufen werden kann, sobald ucChangesData ueber
-// /api/uc1 fertig geladen ist - das passiert zeitlich NACH dem ersten initCharts('d-uc2'),
-// weshalb der Chart sonst dauerhaft auf den (ggf. abweichenden) Demo-Zahlen stehen blieb.
-function renderUC2TasksByLabel() {
-  const canvas = document.getElementById('c-pie3');
-  if (!canvas) return;
-  const uc2ChangeSource = (ucChangesData && ucChangesData.length) ? ucChangesData : DEMO_UC_CHANGES;
-  let tasksInternOpen = 0, tasksKundeOpen = 0;
-  uc2ChangeSource.forEach(ch => {
-    const openCount = Math.max(0, (ch.tasksTotal || 0) - (ch.tasksDone || 0));
-    if (isGanttKundeChange(ch)) tasksKundeOpen += openCount;
-    else tasksInternOpen += openCount;
+// ── Aggregations-Helfer (arbeiten auf der bereits gefilterten Rohdaten-Zeilenliste) ──
+function uc2AggChangesByLabel(rows) {
+  const map = new Map(); // changeId -> {label, changeOpen} (Label/Status sind je Change konstant)
+  rows.forEach(r => { if (!map.has(r.changeId)) map.set(r.changeId, { label: r.label, changeOpen: r.changeOpen }); });
+  let intern = 0, kunde = 0;
+  map.forEach(v => { if (!v.changeOpen) return; if (v.label === 'Kunde') kunde++; else intern++; });
+  return { intern, kunde };
+}
+function uc2AggTasksByLabel(rows) {
+  let intern = 0, kunde = 0;
+  rows.forEach(r => { if (!r.taskOpen) return; if (r.label === 'Kunde') kunde++; else intern++; });
+  return { intern, kunde };
+}
+function uc2AggTasksByTeam(rows) {
+  const counts = new Map();
+  rows.forEach(r => { if (!r.taskOpen || !r.taskTeam) return; counts.set(r.taskTeam, (counts.get(r.taskTeam) || 0) + 1); });
+  return counts;
+}
+function uc2AggChangesByTeam(rows) {
+  const seen = new Set(), counts = new Map();
+  rows.forEach(r => {
+    if (!r.changeTeam) return;
+    const key = r.changeId + '|' + r.changeTeam;
+    if (seen.has(key)) return;
+    seen.add(key);
+    counts.set(r.changeTeam, (counts.get(r.changeTeam) || 0) + 1);
   });
-  const existing = Chart.getChart(canvas);
-  if (existing) existing.destroy();
-  new Chart(canvas, {
-    type:'doughnut',
-    data:{ labels:['Intern','Kunde'],
-           datasets:[{data:[tasksInternOpen,tasksKundeOpen], backgroundColor:['#007377','#FA9370'], borderWidth:2, borderColor:'#16213e'}]},
-    options:{plugins:{legend:{display:false}}, cutout:'62%', responsive:true, maintainAspectRatio:false}
+  return counts;
+}
+// Sortiert Team-Label/Daten-Arrays gemeinsam absteigend nach Wert und filtert auf INF-Teams.
+function uc2SortInfTeams(labels, data) {
+  let idx = labels.map((_, i) => i).filter(i => /INF/i.test(labels[i]));
+  idx.sort((a, b) => data[b] - data[a]);
+  return { labels: idx.map(i => labels[i]), data: idx.map(i => data[i]) };
+}
+
+// Rendert (bzw. rendert neu bei jedem Filter-Klick) alle 4 UC2-Kuchencharts.
+function renderUC2Charts() {
+  const c1 = document.getElementById('c-pie1');
+  const c2 = document.getElementById('c-pie2');
+  const c3 = document.getElementById('c-pie3');
+  const c4 = document.getElementById('c-pie4');
+  if (!c1 || !c2 || !c3 || !c4) return;
+
+  uc2FilterBadgeUpdate();
+
+  const hasRaw = !!(liveUC2Data && Array.isArray(liveUC2Data.rawTasks) && liveUC2Data.rawTasks.length);
+  const rows = hasRaw ? liveUC2Data.rawTasks.filter(uc2FilterMatches) : [];
+  const destroy = (c) => { const ex = Chart.getChart(c); if (ex) ex.destroy(); };
+
+  // ── Pie 1: Offene Changes nach Label ──
+  let intern, kunde;
+  if (hasRaw) {
+    ({ intern, kunde } = uc2AggChangesByLabel(rows));
+  } else {
+    const demoIntern = 15, demoKunde = 1;
+    intern = liveUC2Data ? liveUC2Data.changesByLabel.intern : demoIntern;
+    kunde  = liveUC2Data ? liveUC2Data.changesByLabel.kunde  : demoKunde;
+  }
+  destroy(c1);
+  new Chart(c1, {
+    type: 'doughnut',
+    data: { labels: ['Intern', 'Kunde'], datasets: [{ data: [intern, kunde], backgroundColor: ['#007377', '#FA9370'], borderWidth: 2, borderColor: '#16213e' }] },
+    options: {
+      plugins: { legend: { display: false } }, cutout: '62%', responsive: true, maintainAspectRatio: false,
+      onClick: hasRaw ? uc2OnClickHandler('label') : undefined,
+      onHover: hasRaw ? uc2OnHoverHandler : undefined
+    }
   });
-  const total = tasksInternOpen + tasksKundeOpen || 1;
-  const internPct = (tasksInternOpen/total*100).toFixed(1).replace('.', ',');
-  const kundePct  = (tasksKundeOpen/total*100).toFixed(1).replace('.', ',');
-  makeLegend('cl-pie3',[`Intern – ${tasksInternOpen} Tasks (${internPct} %)`,`Kunde – ${tasksKundeOpen} Tasks (${kundePct} %)`],['#007377','#FA9370']);
+  const total1 = intern + kunde || 1;
+  makeLegend('cl-pie1', [
+    `Intern – ${intern} Changes (${(intern / total1 * 100).toFixed(1).replace('.', ',')} %)`,
+    `Kunde – ${kunde} Change(s) (${(kunde / total1 * 100).toFixed(1).replace('.', ',')} %)`
+  ], ['#007377', '#FA9370']);
+
+  // ── Pie 2: Offene Tasks nach Team (nur INF-Teams) ──
+  let teamLabels2, teamData2;
+  if (hasRaw) {
+    const counts = uc2AggTasksByTeam(rows);
+    teamLabels2 = [...counts.keys()];
+    teamData2   = teamLabels2.map(t => counts.get(t));
+  } else {
+    const demoTeamLabels = ['MED MVZ Competence Center', 'MED Telematik', 'MED Patientenzentrierte Services', 'MED Diagnostik', 'INF Projektmanagement', 'INF Netzwerk', 'INF SQL Administration', 'ADM Finanzen', 'STB DCON', 'ITS Mitte Fieldservice', 'MED Projektmanagement', 'ITS Mitte Servicemanagement', 'MED Imaging und Archive', 'INF Domain Administration', 'STB OrgaQM', 'ADM Personal', 'INF VMWare'];
+    const demoTeamData   = [1989, 119, 85, 52, 51, 41, 34, 34, 27, 23, 17, 17, 17, 9, 9, 9, 1];
+    const useLive = liveUC2Data && Array.isArray(liveUC2Data.openTasksByTeam) && liveUC2Data.openTasksByTeam.length;
+    teamLabels2 = useLive ? liveUC2Data.openTasksByTeam.map(t => t.team)  : demoTeamLabels;
+    teamData2   = useLive ? liveUC2Data.openTasksByTeam.map(t => t.count) : demoTeamData;
+  }
+  ({ labels: teamLabels2, data: teamData2 } = uc2SortInfTeams(teamLabels2, teamData2));
+  const teamColors2 = resolveTeamColors(teamLabels2);
+  destroy(c2);
+  new Chart(c2, {
+    type: 'doughnut',
+    data: { labels: teamLabels2, datasets: [{ data: teamData2, backgroundColor: teamColors2, borderWidth: 2, borderColor: '#16213e' }] },
+    options: {
+      plugins: { legend: { display: false } }, cutout: '62%', responsive: true, maintainAspectRatio: false,
+      onClick: hasRaw ? uc2OnClickHandler('taskTeam') : undefined,
+      onHover: hasRaw ? uc2OnHoverHandler : undefined
+    }
+  });
+  makeLegend('cl-pie2', teamLabels2.map((l, i) => `${l} (${teamData2[i]})`), teamColors2);
+
+  // ── Pie 3: Offene Tasks nach Label ──
+  let tasksInternOpen, tasksKundeOpen;
+  if (hasRaw) {
+    ({ intern: tasksInternOpen, kunde: tasksKundeOpen } = uc2AggTasksByLabel(rows));
+  } else {
+    const uc2ChangeSource = (ucChangesData && ucChangesData.length) ? ucChangesData : DEMO_UC_CHANGES;
+    tasksInternOpen = 0; tasksKundeOpen = 0;
+    uc2ChangeSource.forEach(ch => {
+      const openCount = Math.max(0, (ch.tasksTotal || 0) - (ch.tasksDone || 0));
+      if (isGanttKundeChange(ch)) tasksKundeOpen += openCount;
+      else tasksInternOpen += openCount;
+    });
+  }
+  destroy(c3);
+  new Chart(c3, {
+    type: 'doughnut',
+    data: { labels: ['Intern', 'Kunde'], datasets: [{ data: [tasksInternOpen, tasksKundeOpen], backgroundColor: ['#007377', '#FA9370'], borderWidth: 2, borderColor: '#16213e' }] },
+    options: {
+      plugins: { legend: { display: false } }, cutout: '62%', responsive: true, maintainAspectRatio: false,
+      onClick: hasRaw ? uc2OnClickHandler('label') : undefined,
+      onHover: hasRaw ? uc2OnHoverHandler : undefined
+    }
+  });
+  const total3 = tasksInternOpen + tasksKundeOpen || 1;
+  makeLegend('cl-pie3', [
+    `Intern – ${tasksInternOpen} Tasks (${(tasksInternOpen / total3 * 100).toFixed(1).replace('.', ',')} %)`,
+    `Kunde – ${tasksKundeOpen} Tasks (${(tasksKundeOpen / total3 * 100).toFixed(1).replace('.', ',')} %)`
+  ], ['#007377', '#FA9370']);
+
+  // ── Pie 4: Anzahl der Changes pro Team (nur INF-Teams) ──
+  const noteEl = document.getElementById('uc2-pie4-note');
+  let teamLabels4, teamData4, note4 = null;
+  if (hasRaw) {
+    const counts = uc2AggChangesByTeam(rows);
+    teamLabels4 = [...counts.keys()];
+    teamData4   = teamLabels4.map(t => counts.get(t));
+    if (!teamLabels4.length) note4 = uc2Filter ? 'Keine Changes im aktuellen Filter.' : (liveUC2Data.changesByTeamNote || null);
+  } else if (liveUC2Data && Array.isArray(liveUC2Data.changesByTeam) && liveUC2Data.changesByTeam.length) {
+    teamLabels4 = liveUC2Data.changesByTeam.map(t => t.team);
+    teamData4   = liveUC2Data.changesByTeam.map(t => t.count);
+  } else if (liveUC2Data && liveUC2Data.changesByTeamNote) {
+    teamLabels4 = []; teamData4 = []; note4 = liveUC2Data.changesByTeamNote;
+  } else if (!liveUC2Data) {
+    teamLabels4 = ['INF VMWare', 'INF Projektmanagement', 'INF Netzwerk', 'INF SQL Administration', 'INF IT Architektur', 'INF Domain Administration', 'INF Collaboration', 'INF Desktop Operation'];
+    teamData4   = [9, 7, 5, 4, 2, 2, 1, 1];
+  } else {
+    teamLabels4 = []; teamData4 = [];
+  }
+  ({ labels: teamLabels4, data: teamData4 } = uc2SortInfTeams(teamLabels4, teamData4));
+
+  destroy(c4);
+  if (!teamLabels4.length) {
+    if (noteEl) { noteEl.style.display = 'block'; noteEl.textContent = note4 || 'Keine Daten zu Changes je Team verfügbar.'; }
+    const legendEl = document.getElementById('cl-pie4');
+    if (legendEl) legendEl.innerHTML = '';
+  } else {
+    if (noteEl) noteEl.style.display = 'none';
+    const teamColors4 = resolveTeamColors(teamLabels4);
+    new Chart(c4, {
+      type: 'doughnut',
+      data: { labels: teamLabels4, datasets: [{ data: teamData4, backgroundColor: teamColors4, borderWidth: 2, borderColor: '#16213e' }] },
+      options: {
+        plugins: { legend: { display: false } }, cutout: '62%', responsive: true, maintainAspectRatio: false,
+        onClick: hasRaw ? uc2OnClickHandler('changeTeam') : undefined,
+        onHover: hasRaw ? uc2OnHoverHandler : undefined
+      }
+    });
+    makeLegend('cl-pie4', teamLabels4.map((l, i) => `${l} (${teamData4[i]})`), teamColors4);
+  }
 }
 
 function initCharts(viewId) {
@@ -1767,51 +2666,12 @@ function initCharts(viewId) {
     renderGantt1(true);
   }
 
-  // UC2 – Aktuelle Ansicht: Offene Changes nach Label + Offene Tasks nach Team
-  // Nutzt liveUC2Data (aus Bridge-API), fällt sonst auf eingebettete Demo-Zahlen
-  // (Stand SQL-DB IAPPowerBI, 06.07.2026) zurück.
+  // UC2 – Aktuelle Ansicht: 4 Kuchencharts, gegenseitig cross-filterbar (siehe
+  // renderUC2Charts weiter unten). Nutzt liveUC2Data (aus Bridge-API), fällt
+  // sonst auf eingebettete Demo-Zahlen (Stand SQL-DB IAPPowerBI, 06.07.2026) zurück.
   if (viewId === 'd-uc2') {
-    const demoIntern = 15, demoKunde = 1;
-    const demoTeamLabels = ['MED MVZ Competence Center','MED Telematik','MED Patientenzentrierte Services','MED Diagnostik','INF Projektmanagement','INF Netzwerk','INF SQL Administration','ADM Finanzen','STB DCON','ITS Mitte Fieldservice','MED Projektmanagement','ITS Mitte Servicemanagement','MED Imaging und Archive','INF Domain Administration','STB OrgaQM','ADM Personal','INF VMWare'];
-    const demoTeamData   = [1989,119,85,52,51,41,34,34,27,23,17,17,17,9,9,9,1];
-
-    const intern = liveUC2Data ? liveUC2Data.changesByLabel.intern : demoIntern;
-    const kunde  = liveUC2Data ? liveUC2Data.changesByLabel.kunde  : demoKunde;
-
-    let teamLabels = demoTeamLabels, teamData = demoTeamData;
-    if (liveUC2Data && Array.isArray(liveUC2Data.openTasksByTeam) && liveUC2Data.openTasksByTeam.length) {
-      teamLabels = liveUC2Data.openTasksByTeam.map(t => t.team);
-      teamData   = liveUC2Data.openTasksByTeam.map(t => t.count);
-    }
-    // Nur Infrastruktur-Teams anzeigen (alle Bearbeitergruppen, die "INF" im Namen tragen)
-    const infIdx = teamLabels.map((_, i) => i).filter(i => /INF/i.test(teamLabels[i]));
-    teamLabels = infIdx.map(i => teamLabels[i]);
-    teamData   = infIdx.map(i => teamData[i]);
-    const teamColors = resolveTeamColors(teamLabels);
-
-    // Pie 1 – Offene Changes nach Label (Kunde vs. Intern; "Kunde" = Change-Labels enthält "Kunde")
-    new Chart(document.getElementById('c-pie1'), {
-      type:'doughnut',
-      data:{ labels:['Intern','Kunde'],
-             datasets:[{data:[intern,kunde], backgroundColor:['#007377','#FA9370'], borderWidth:2, borderColor:'#16213e'}]},
-      options:{plugins:{legend:{display:false}}, cutout:'62%', responsive:true, maintainAspectRatio:false}
-    });
-    const total12 = intern + kunde || 1;
-    const internPct = (intern/total12*100).toFixed(1).replace('.', ',');
-    const kundePct  = (kunde/total12*100).toFixed(1).replace('.', ',');
-    makeLegend('cl-pie1',[`Intern – ${intern} Changes (${internPct} %)`,`Kunde – ${kunde} Change(s) (${kundePct} %)`],['#007377','#FA9370']);
-
-    // Pie 2 – Offene Tasks nach Team (Bearbeitergruppe)
-    new Chart(document.getElementById('c-pie2'), {
-      type:'doughnut',
-      data:{ labels:teamLabels,
-             datasets:[{data:teamData, backgroundColor:teamColors, borderWidth:2, borderColor:'#16213e'}]},
-      options:{plugins:{legend:{display:false}}, cutout:'62%', responsive:true, maintainAspectRatio:false}
-    });
-    makeLegend('cl-pie2', teamLabels.map((l,i)=>`${l} (${teamData[i]})`), teamColors);
-
-    renderUC2TasksByLabel();
-    renderUC2ChangesByTeam();
+    uc2Filter = null;
+    renderUC2Charts();
 
     // KPI-Kacheln (Offene Changes/Tasks/Kunden-Changes/Teams) – bislang wurde
     // updateUC2Kpis() nur beim erneuten Nachladen (schon initialisierte Ansicht)
@@ -1829,6 +2689,12 @@ function initCharts(viewId) {
   // UC4 – Historischer Verlauf (Aktienchart: 6 Linien, waechst taeglich per Snapshot)
   if (viewId === 'd-uc4') {
     renderUC4();
+  }
+
+  // Schnittstellen: A2C – Status-Anzeige (rein lesend, kein eigener Chart)
+  if (viewId === 'd-a2c') {
+    loadA2cConfig();
+    refreshA2cStatus();
   }
 
   // UC4.1 – Combo Detail (Task-Abschluss + %-Verlauf)
