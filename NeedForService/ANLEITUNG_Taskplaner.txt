@@ -26,6 +26,23 @@ Schritt 3: db_config.json pruefen
 Server, Datenbank und Authentifizierung auf die PROD-Werte anpassen
 (aktuell stehen dort noch die Dev/Test-Werte drin).
 
+Hinweis Sicherheit: Bei SQL-Server-Login (nicht bei Windows-Auth) wird das
+Passwort NICHT mehr in db_config.json gespeichert, sondern ueber das
+Python-Paket "keyring" im Windows Credential Manager des Kontos, unter dem
+dieser Task laeuft - es einmal ueber das "Verbindung"-Modal im Dashboard
+eingeben und speichern, dann bleibt es dort sicher hinterlegt.
+
+Neu hinzugekommen sind zwei Logdateien, die beim Betrieb automatisch in
+diesem Ordner angelegt werden: iap_dashboard_api.log (alle Fehler + wichtige
+Aktionen wie Verbindungstests/Config-Aenderungen) und deploy_audit.log
+(Protokoll aller Deploy-Vorgaenge ueber den "Deploy"-Knopf im Dashboard, falls
+dieser genutzt wird - dafuer muss IAP_Dashboard_MAIN.html allerdings neben
+iap_dashboard_api.py liegen, was in diesem NeedForService-Ordner standardmaessig
+nicht der Fall ist). Optional laesst sich zusaetzlich ueber das "Verbindung"-
+Modal ein API-Key setzen, den dann alle aendernden Endpunkte (Config, Deploy)
+im Header "X-API-Key" verlangen - wichtig, sobald dieser Dienst nicht mehr nur
+unter 127.0.0.1 erreichbar ist.
+
 Schritt 4: Task im Windows-Taskplaner anlegen
 -------------------------------------------------------------
 1. Taskplaner oeffnen -> "Aufgabe erstellen..." (nicht "Einfache Aufgabe",
