@@ -70,5 +70,68 @@
     "tasksTotal": 1831,
     "tasksOpen": 405,
     "tasksClosed": 1426
+  },
+  {
+    "date": "2026-07-08",
+    "changesTotal": 101,
+    "changesOpen": 77,
+    "changesClosed": 24,
+    "tasksTotal": 1831,
+    "tasksOpen": 405,
+    "tasksClosed": 1426
+  },
+  {
+    "date": "2026-07-12",
+    "changesTotal": 101,
+    "changesOpen": 77,
+    "changesClosed": 24,
+    "tasksTotal": 1831,
+    "tasksOpen": 405,
+    "tasksClosed": 1426
+  },
+  {
+    "date": "2026-07-13",
+    "changesTotal": 101,
+    "changesOpen": 77,
+    "changesClosed": 24,
+    "tasksTotal": 1831,
+    "tasksOpen": 405,
+    "tasksClosed": 1426
+  },
+  {
+    "date": "2026-07-14",
+    "changesTotal": 101,
+    "changesOpen": 77,
+    "changesClosed": 24,
+    "tasksTotal": 1831,
+    "tasksOpen": 405,
+    "tasksClosed": 1426
+  },
+  {
+    "date": "2026-07-15",
+    "changesTotal": 101,
+    "changesOpen": 77,
+    "changesClosed": 24,
+    "tasksTotal": 1831,
+    "tasksOpen": 405,
+    "tasksClosed": 1426
+  },
+  {
+    "date": "2026-07-17",
+    "changesTotal": 101,
+    "changesOpen": 77,
+    "changesClosed": 24,
+    "tasksTotal": 1831,
+    "tasksOpen": 405,
+    "tasksClosed": 1426
+  },
+  {
+    "date": "2026-07-20",
+    "changesTotal": 101,
+    "changesOpen": 77,
+    "changesClosed": 24,
+    "tasksTotal": 1831,
+    "tasksOpen": 405,
+    "tasksClosed": 1426
   }
 ]

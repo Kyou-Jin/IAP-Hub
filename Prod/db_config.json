@@ -3,6 +3,5 @@
   "server": "localhost\\SQLEXPRESS",
   "database": "IAPPowerBI",
   "authType": "windows",
-  "username": "",
-  "password": ""
+  "username": ""
 }
